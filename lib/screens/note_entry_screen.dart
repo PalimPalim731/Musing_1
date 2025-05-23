@@ -23,27 +23,24 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   // Active selections with default values
   String _selectedCategory = 'Private';
   String _selectedSize = 'Medium';
-  
-  // Selected tag IDs
-  final List<String> _selectedTagIds = [];
-  
-  // Applied tags to the current note
+
+  // Applied tags to the current note (tags that have been dragged onto the note)
   final List<TagData> _appliedTags = [];
-  
+
   // Services for data operations
   final NoteService _noteService = NoteService();
   final TagService _tagService = TagService();
-  
+
   // Controller for the note text input
   final TextEditingController _noteController = TextEditingController();
-  
+
   // Focus node to manage keyboard focus
   final FocusNode _noteFocusNode = FocusNode();
-  
+
   @override
   void initState() {
     super.initState();
-    
+
     // Listen to tag changes (like renames) to update applied tags
     _tagService.tagsStream.listen((updatedTags) {
       // If any applied tags have been renamed, update them
@@ -56,7 +53,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
               (tag) => tag.id == currentTag.id,
               orElse: () => currentTag, // Keep the old one if not found
             );
-            
+
             // Replace tag if it was updated
             if (updatedTag.label != currentTag.label) {
               _appliedTags[i] = updatedTag;
@@ -66,7 +63,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
       }
     });
   }
-  
+
   @override
   void dispose() {
     // Clean up controllers and focus nodes when the widget is disposed
@@ -78,9 +75,10 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   @override
   Widget build(BuildContext context) {
     // Get responsive values
-    final bool isCompact = MediaQuery.of(context).size.width < AppLayout.tabletBreakpoint;
+    final bool isCompact =
+        MediaQuery.of(context).size.width < AppLayout.tabletBreakpoint;
     final double spacing = AppLayout.getSpacing(context);
-    
+
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
@@ -133,7 +131,6 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
                       TagSidebar(
                         screenHeight: constraints.maxHeight,
                         isCompact: isCompact,
-                        onTagSelected: _handleTagSelected,
                       ),
 
                       // Right spacing
@@ -169,46 +166,21 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
       _selectedSize = size;
     });
   }
-  
-  // Handle tag selection in the sidebar
-  void _handleTagSelected(String tagId, bool isSelected) {
-    setState(() {
-      if (isSelected) {
-        if (!_selectedTagIds.contains(tagId)) {
-          _selectedTagIds.add(tagId);
-        }
-      } else {
-        _selectedTagIds.remove(tagId);
-      }
-    });
-    debugPrint('Selected tags: $_selectedTagIds');
-  }
-  
+
   // Handle tag dropped onto the note
   void _handleTagAdded(TagData tag) {
     setState(() {
       if (!_appliedTags.contains(tag)) {
         _appliedTags.add(tag);
-        // Also add to selected tags if not already there
-        if (!_selectedTagIds.contains(tag.id)) {
-          _selectedTagIds.add(tag.id);
-        }
       }
     });
     debugPrint('Tag added to note: ${tag.label}');
   }
-  
-  // Find a TagData from the TagService by id
-  TagData? _findTagById(String id) {
-    return _tagService.getTagById(id);
-  }
-  
+
   // Handle removal of tag from the note
   void _handleTagRemoved(TagData tag) {
     setState(() {
       _appliedTags.removeWhere((t) => t.id == tag.id);
-      // Note: We're not removing from _selectedTagIds here,
-      // as that's more for categorization
     });
     debugPrint('Tag removed from note: ${tag.label}');
   }
@@ -223,7 +195,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     // In a real app, save the note first if needed
     // This is now a separate action since we removed the Save button
     _saveCurrentNote();
-    
+
     // TODO: Navigate to explore screen
     debugPrint('Explore pressed');
   }
@@ -232,21 +204,26 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     // TODO: Implement profile navigation
     debugPrint('Profile pressed');
   }
-  
+
   // Save the current note
   void _saveCurrentNote() {
     final content = _noteController.text;
     if (content.isEmpty) return;
-    
+
+    // Extract tag IDs from applied tags
+    final tagIds = _appliedTags.map((tag) => tag.id).toList();
+
     // Call the note service to save the note
-    _noteService.addNote(
+    _noteService
+        .addNote(
       content: content,
       category: _selectedCategory,
       size: _selectedSize,
-      tagIds: List<String>.from(_selectedTagIds),
-    ).then((note) {
+      tagIds: tagIds,
+    )
+        .then((note) {
       debugPrint('Note saved: ${note.id}');
-      
+
       // Show confirmation to the user
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -254,21 +231,20 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
           duration: Duration(seconds: 2),
         ),
       );
-      
+
       // Clear the note input and reset state
       _noteController.clear();
-      
+
       setState(() {
-        _selectedTagIds.clear();
         _appliedTags.clear();
       });
     });
   }
-  
+
   // Centralized note action handlers
   void _handleDeleteNote() {
     if (_noteController.text.isEmpty) return;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -283,10 +259,9 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
             onPressed: () {
               _noteController.clear();
               Navigator.of(context).pop();
-              
-              // Reset selected tags and applied tags
+
+              // Reset applied tags
               setState(() {
-                _selectedTagIds.clear();
                 _appliedTags.clear();
               });
             },
@@ -296,19 +271,19 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
       ),
     );
   }
-  
+
   void _handleUndoNote() {
     // In a real implementation, you would track changes
     // and implement an undo stack
-    
+
     // For now just log the action
     debugPrint('Undo pressed');
   }
-  
+
   void _handleFormatNote() {
     // This is a placeholder for future formatting functionality
     debugPrint('Format pressed - Feature to be implemented later');
-    
+
     // Sample implementation - show a snackbar to indicate the feature is coming
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -317,30 +292,30 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
       ),
     );
   }
-  
+
   void _handleCameraPressed() {
     // In a real implementation, you would:
     // - Request camera permissions if needed
     // - Launch camera interface
     // - Handle the captured image
-    
+
     debugPrint('Camera pressed');
   }
-  
+
   void _handleMicPressed() {
     // In a real implementation, you would:
     // - Request microphone permissions if needed
     // - Start voice recording
     // - Handle the recorded audio
-    
+
     debugPrint('Mic pressed');
   }
-  
+
   void _handleLinkPressed() {
     // In a real implementation, you would:
     // - Show a dialog to enter a URL
     // - Validate and attach the link
-    
+
     debugPrint('Link pressed');
   }
 }
