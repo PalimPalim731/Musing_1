@@ -137,11 +137,10 @@ class _EditableTagItemState extends State<EditableTagItem> {
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.zero,
                     isDense: true,
-                    // Simplified hint text instead of complex suffix
-                    hintText:
-                        _textController.text.length > 7 ? 'Too long!' : null,
+                    // Show character count as hint
+                    hintText: '${_textController.text.length}/7',
                     hintStyle: TextStyle(
-                      color: Colors.red.withOpacity(0.7),
+                      color: theme.colorScheme.primary.withOpacity(0.5),
                       fontSize: fontSize * 0.8,
                     ),
                   ),
@@ -155,9 +154,9 @@ class _EditableTagItemState extends State<EditableTagItem> {
                   },
                   // Prevent line breaks
                   maxLines: 1,
-                  // Set a reasonable max length
-                  maxLength: 15,
-                  // Hide the counter
+                  // Hard limit of 7 characters
+                  maxLength: 7,
+                  // Hide the default counter since we show it in hint
                   buildCounter: (context,
                           {required currentLength,
                           required isFocused,
@@ -174,7 +173,7 @@ class _EditableTagItemState extends State<EditableTagItem> {
 
   Widget _buildNormalMode(ThemeData theme, bool isSelected, double radius,
       double fontSize, double borderWidth) {
-    // Wrap with Draggable widget
+    // Wrap with Draggable widget - this is the key for drag functionality
     return Draggable<TagData>(
       // The data that will be passed to the DragTarget
       data: widget.tag,
