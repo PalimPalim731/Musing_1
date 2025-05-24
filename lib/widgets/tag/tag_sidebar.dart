@@ -60,36 +60,32 @@ class _TagSidebarState extends State<TagSidebar> {
           final availableHeight =
               constraints.maxHeight - topOffset - bottomOffset;
 
-          // Calculate tag height and spacing for even distribution
+          // Calculate tag height and spacing to match CategorySidebar spacing
           final totalItems = _tags.length;
-          final totalSpacers = totalItems - 1; // number of spaces between tags
-
-          // Distribute available height between tags and spacers
-          // Reduced spacer multiplier from 0.5 to 0.25 to make tags bigger and spaces smaller
-          final tagHeight =
-              availableHeight / (totalItems + totalSpacers * 0.25);
-          final spacerHeight = tagHeight *
-              0.25; // spacers are now 25% of tag height instead of 50%
+          final totalSpacing = (totalItems - 1) *
+              AppLayout.spacingS; // Fixed spacing like categories
+          final tagHeight = (availableHeight - totalSpacing) / totalItems;
 
           return Container(
             padding: EdgeInsets.only(top: topOffset, bottom: bottomOffset),
             child: Column(
-              children: List.generate(totalItems * 2 - 1, (index) {
-                // Even indices are tags, odd indices are spacers
-                if (index.isEven) {
-                  final tagIndex = index ~/ 2;
-                  return EditableTagItem(
+              children: [
+                // Generate tags with fixed spacing between them (same as categories)
+                for (int i = 0; i < _tags.length; i++) ...[
+                  EditableTagItem(
                     height: tagHeight,
-                    tag: _tags[tagIndex],
-                    onTap: () => _handleTagTap(_tags[tagIndex]),
+                    tag: _tags[i],
+                    onTap: () => _handleTagTap(_tags[i]),
                     onRename: (newLabel) =>
-                        _handleTagRename(_tags[tagIndex], newLabel),
+                        _handleTagRename(_tags[i], newLabel),
                     isCompact: widget.isCompact,
-                  );
-                } else {
-                  return SizedBox(height: spacerHeight);
-                }
-              }),
+                  ),
+
+                  // Add spacing between tags (except after the last one)
+                  if (i < _tags.length - 1)
+                    SizedBox(height: AppLayout.spacingS),
+                ],
+              ],
             ),
           );
         },
