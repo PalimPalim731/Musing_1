@@ -19,7 +19,7 @@ class TagService {
   // Maximum tag length constant
   static const int maxTagLength = 7;
 
-  // Default tags - all within 7 character limit
+  // Default tags - all within 7 character limit (now 7 total tags)
   final List<TagData> _defaultTags = [
     TagData(id: '1', label: 'Work'),
     TagData(id: '2', label: 'Ideas'),
@@ -28,6 +28,8 @@ class TagService {
         id: '4',
         label: 'Personal'), // This will be truncated to "Person" when edited
     TagData(id: '5', label: 'Travel'),
+    TagData(id: '6', label: 'Health'),
+    TagData(id: '7', label: 'Goals'),
   ];
 
   // In-memory storage for tags - in a real app, this would be a database

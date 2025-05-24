@@ -42,9 +42,11 @@ class _TagSidebarState extends State<TagSidebar> {
   @override
   Widget build(BuildContext context) {
     // Calculate the exact offsets to align with note content area
-    final topOffset = AppLayout.spacingS + AppLayout.selectorHeight + AppLayout.spacingS;
+    final topOffset =
+        AppLayout.spacingS + AppLayout.selectorHeight + AppLayout.spacingS;
     final bottomOffset = AppLayout.spacingS;
-    final sidebarWidth = AppLayout.getSidebarWidth(context, isCompact: widget.isCompact);
+    final sidebarWidth =
+        AppLayout.getSidebarWidth(context, isCompact: widget.isCompact);
 
     return Container(
       width: sidebarWidth,
@@ -55,15 +57,19 @@ class _TagSidebarState extends State<TagSidebar> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           // Calculate available height after accounting for top and bottom offsets
-          final availableHeight = constraints.maxHeight - topOffset - bottomOffset;
+          final availableHeight =
+              constraints.maxHeight - topOffset - bottomOffset;
 
           // Calculate tag height and spacing for even distribution
           final totalItems = _tags.length;
           final totalSpacers = totalItems - 1; // number of spaces between tags
 
           // Distribute available height between tags and spacers
-          final tagHeight = availableHeight / (totalItems + totalSpacers * 0.5);
-          final spacerHeight = tagHeight * 0.5; // spacers are half the height of tags
+          // Reduced spacer multiplier from 0.5 to 0.25 to make tags bigger and spaces smaller
+          final tagHeight =
+              availableHeight / (totalItems + totalSpacers * 0.25);
+          final spacerHeight = tagHeight *
+              0.25; // spacers are now 25% of tag height instead of 50%
 
           return Container(
             padding: EdgeInsets.only(top: topOffset, bottom: bottomOffset),
@@ -76,7 +82,8 @@ class _TagSidebarState extends State<TagSidebar> {
                     height: tagHeight,
                     tag: _tags[tagIndex],
                     onTap: () => _handleTagTap(_tags[tagIndex]),
-                    onRename: (newLabel) => _handleTagRename(_tags[tagIndex], newLabel),
+                    onRename: (newLabel) =>
+                        _handleTagRename(_tags[tagIndex], newLabel),
                     isCompact: widget.isCompact,
                   );
                 } else {
@@ -89,7 +96,7 @@ class _TagSidebarState extends State<TagSidebar> {
       ),
     );
   }
-  
+
   void _handleTagTap(TagData tag) {
     widget.onTagSelected?.call(tag.id, !tag.isSelected);
   }
