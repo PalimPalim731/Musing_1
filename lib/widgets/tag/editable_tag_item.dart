@@ -77,10 +77,11 @@ class _EditableTagItemState extends State<EditableTagItem> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isSelected = widget.tag.isSelected;
-    final radius = widget.isCompact ? AppLayout.tagRadius * 0.8 : AppLayout.tagRadius;
-    final fontSize = AppLayout.getFontSize(context, 
+    final radius =
+        widget.isCompact ? AppLayout.tagRadius * 0.8 : AppLayout.tagRadius;
+    final fontSize = AppLayout.getFontSize(context,
         baseSize: widget.isCompact ? 12.0 : 14.0);
-    final borderWidth = isSelected 
+    final borderWidth = isSelected
         ? (widget.isCompact ? 1.2 : 1.5)
         : (widget.isCompact ? 0.8 : 1.0);
 
@@ -91,7 +92,8 @@ class _EditableTagItemState extends State<EditableTagItem> {
     }
   }
 
-  Widget _buildEditingMode(ThemeData theme, double radius, double fontSize, double borderWidth) {
+  Widget _buildEditingMode(
+      ThemeData theme, double radius, double fontSize, double borderWidth) {
     // This is a non-draggable mode just for editing
     return Container(
       height: widget.height,
@@ -116,25 +118,13 @@ class _EditableTagItemState extends State<EditableTagItem> {
           padding: const EdgeInsets.symmetric(horizontal: 4.0),
           child: RotatedBox(
             quarterTurns: 3, // Keep the rotation consistent with normal mode
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Show the current full tag name above the text field
-                if (widget.tag.label.length > 7)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 2.0),
-                    child: Text(
-                      widget.tag.label,
-                      style: TextStyle(
-                        color: theme.colorScheme.primary.withOpacity(0.8),
-                        fontSize: fontSize * 0.8,
-                        fontStyle: FontStyle.italic,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                // Text field for editing
-                TextField(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: widget.height - 8.0, // Account for padding
+                  maxWidth: double.infinity,
+                ),
+                child: TextField(
                   controller: _textController,
                   focusNode: _focusNode,
                   style: TextStyle(
@@ -147,27 +137,34 @@ class _EditableTagItemState extends State<EditableTagItem> {
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.zero,
                     isDense: true,
-                    // Add a suffix that shows how many characters are used
-                    suffix: _textController.text.length > 7 
-                        ? Text(
-                            "(${_textController.text.length})",
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontSize: fontSize * 0.8,
-                            ),
-                          ) 
-                        : null,
+                    // Simplified hint text instead of complex suffix
+                    hintText:
+                        _textController.text.length > 7 ? 'Too long!' : null,
+                    hintStyle: TextStyle(
+                      color: Colors.red.withOpacity(0.7),
+                      fontSize: fontSize * 0.8,
+                    ),
                   ),
                   // Handle keyboard submission
                   onSubmitted: (_) => _saveChanges(),
                   // Update the UI as the user types
                   onChanged: (text) {
                     setState(() {
-                      // Just trigger a rebuild
+                      // Just trigger a rebuild for hint text update
                     });
                   },
+                  // Prevent line breaks
+                  maxLines: 1,
+                  // Set a reasonable max length
+                  maxLength: 15,
+                  // Hide the counter
+                  buildCounter: (context,
+                          {required currentLength,
+                          required isFocused,
+                          maxLength}) =>
+                      null,
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -175,7 +172,8 @@ class _EditableTagItemState extends State<EditableTagItem> {
     );
   }
 
-  Widget _buildNormalMode(ThemeData theme, bool isSelected, double radius, double fontSize, double borderWidth) {
+  Widget _buildNormalMode(ThemeData theme, bool isSelected, double radius,
+      double fontSize, double borderWidth) {
     // Wrap with Draggable widget
     return Draggable<TagData>(
       // The data that will be passed to the DragTarget
@@ -206,22 +204,20 @@ class _EditableTagItemState extends State<EditableTagItem> {
         child: _buildTagItem(theme, isSelected, radius, fontSize, borderWidth),
       ),
       // The actual widget displayed when not dragging
-      child: GestureDetector(
-        // Use onDoubleTap to enter edit mode
-        onDoubleTap: _startEditing,
-        child: _buildTagItem(theme, isSelected, radius, fontSize, borderWidth),
-      ),
+      child: _buildTagItem(theme, isSelected, radius, fontSize, borderWidth),
     );
   }
 
   // Extracted the original tag item widget to reduce code duplication
-  Widget _buildTagItem(ThemeData theme, bool isSelected, double radius, double fontSize, double borderWidth) {
+  Widget _buildTagItem(ThemeData theme, bool isSelected, double radius,
+      double fontSize, double borderWidth) {
     return Semantics(
       label: widget.tag.label,
       selected: isSelected,
       button: true,
       child: GestureDetector(
         onTap: widget.onTap,
+        onDoubleTap: _startEditing, // Add double-tap to enter edit mode
         child: Container(
           height: widget.height,
           decoration: BoxDecoration(
@@ -260,7 +256,8 @@ class _EditableTagItemState extends State<EditableTagItem> {
                           ? theme.colorScheme.primary
                           : theme.colorScheme.primary.withOpacity(0.8),
                       fontSize: fontSize,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                 ),
