@@ -138,7 +138,7 @@ class _EditableTagItemState extends State<EditableTagItem> {
                     contentPadding: EdgeInsets.zero,
                     isDense: true,
                     // Show character count as hint
-                    hintText: '${_textController.text.length}/7',
+                    hintText: '${_textController.text.length}/10',
                     hintStyle: TextStyle(
                       color: theme.colorScheme.primary.withOpacity(0.5),
                       fontSize: fontSize * 0.8,
@@ -154,8 +154,8 @@ class _EditableTagItemState extends State<EditableTagItem> {
                   },
                   // Prevent line breaks
                   maxLines: 1,
-                  // Hard limit of 7 characters
-                  maxLength: 7,
+                  // Hard limit of 10 characters
+                  maxLength: 10,
                   // Hide the default counter since we show it in hint
                   buildCounter: (context,
                           {required currentLength,
@@ -188,7 +188,7 @@ class _EditableTagItemState extends State<EditableTagItem> {
             borderRadius: BorderRadius.circular(radius),
           ),
           child: Text(
-            TextUtils.truncateWithEllipsis(widget.tag.label, 7),
+            TextUtils.truncateWithEllipsis(widget.tag.label, 10),
             style: TextStyle(
               color: Colors.white,
               fontSize: fontSize,
@@ -249,7 +249,7 @@ class _EditableTagItemState extends State<EditableTagItem> {
                 quarterTurns: 3,
                 child: Center(
                   child: Text(
-                    TextUtils.truncateWithEllipsis(widget.tag.label, 7),
+                    TextUtils.truncateWithEllipsis(widget.tag.label, 10),
                     style: TextStyle(
                       color: isSelected
                           ? theme.colorScheme.primary

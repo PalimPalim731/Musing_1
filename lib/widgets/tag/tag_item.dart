@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 import '../../models/tag.dart';
+import '../../utils/text_utils.dart';
 
 /// Individual tag item in the right sidebar
 class TagItem extends StatelessWidget {
@@ -24,11 +25,10 @@ class TagItem extends StatelessWidget {
     final theme = Theme.of(context);
     final isSelected = tag.isSelected;
     final radius = isCompact ? AppLayout.tagRadius * 0.8 : AppLayout.tagRadius;
-    final fontSize = AppLayout.getFontSize(context, 
-        baseSize: isCompact ? 12.0 : 14.0);
-    final borderWidth = isSelected 
-        ? (isCompact ? 1.2 : 1.5)
-        : (isCompact ? 0.8 : 1.0);
+    final fontSize =
+        AppLayout.getFontSize(context, baseSize: isCompact ? 12.0 : 14.0);
+    final borderWidth =
+        isSelected ? (isCompact ? 1.2 : 1.5) : (isCompact ? 0.8 : 1.0);
 
     // Wrap with Draggable widget
     return Draggable<TagData>(
@@ -45,7 +45,7 @@ class TagItem extends StatelessWidget {
             borderRadius: BorderRadius.circular(radius),
           ),
           child: Text(
-            tag.label,
+            TextUtils.truncateWithEllipsis(tag.label, 10),
             style: TextStyle(
               color: Colors.white,
               fontSize: fontSize,
@@ -57,15 +57,17 @@ class TagItem extends StatelessWidget {
       // Reduce the opacity of the original widget during drag
       childWhenDragging: Opacity(
         opacity: 0.5,
-        child: _buildTagItem(context, theme, isSelected, radius, fontSize, borderWidth),
+        child: _buildTagItem(
+            context, theme, isSelected, radius, fontSize, borderWidth),
       ),
       // The actual widget displayed when not dragging
-      child: _buildTagItem(context, theme, isSelected, radius, fontSize, borderWidth),
+      child: _buildTagItem(
+          context, theme, isSelected, radius, fontSize, borderWidth),
     );
   }
 
   // Extracted the original tag item widget to reduce code duplication
-  Widget _buildTagItem(BuildContext context, ThemeData theme, bool isSelected, 
+  Widget _buildTagItem(BuildContext context, ThemeData theme, bool isSelected,
       double radius, double fontSize, double borderWidth) {
     return Semantics(
       label: tag.label,
@@ -105,13 +107,14 @@ class TagItem extends StatelessWidget {
                 quarterTurns: 3,
                 child: Center(
                   child: Text(
-                    tag.label,
+                    TextUtils.truncateWithEllipsis(tag.label, 10),
                     style: TextStyle(
                       color: isSelected
                           ? theme.colorScheme.primary
                           : theme.colorScheme.primary.withOpacity(0.8),
                       fontSize: fontSize,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                 ),

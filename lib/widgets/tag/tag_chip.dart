@@ -10,9 +10,9 @@ class TagChip extends StatelessWidget {
   final TagData tag;
   final VoidCallback? onRemove;
   final bool isSmall;
-  
+
   const TagChip({
-    super.key, 
+    super.key,
     required this.tag,
     this.onRemove,
     this.isSmall = false,
@@ -26,7 +26,7 @@ class TagChip extends StatelessWidget {
     final horizontalPadding = isSmall ? 6.0 : 8.0;
     final verticalPadding = isSmall ? 4.0 : 6.0;
     final iconSize = isSmall ? 14.0 : 16.0;
-    
+
     return Container(
       margin: const EdgeInsets.only(right: 6.0, bottom: 6.0),
       child: Material(
@@ -51,7 +51,7 @@ class TagChip extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  TextUtils.truncateWithEllipsis(tag.label, 7),
+                  TextUtils.truncateWithEllipsis(tag.label, 10),
                   style: TextStyle(
                     color: tagColor.withOpacity(0.8),
                     fontSize: fontSize,
