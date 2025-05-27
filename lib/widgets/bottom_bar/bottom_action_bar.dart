@@ -21,43 +21,49 @@ class BottomActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     // Calculate sizes based on compact mode
-    final buttonSize = isCompact 
-        ? AppLayout.compactCircleButtonSize 
+    final buttonSize = isCompact
+        ? AppLayout.compactCircleButtonSize
         : AppLayout.circleButtonSize;
-    final sidebarWidth = AppLayout.getSidebarWidth(context, isCompact: isCompact);
-    final sidePadding = isCompact 
-        ? AppLayout.spacingS * 0.5 
-        : AppLayout.spacingS;
-    final actionBarHeight = isCompact 
-        ? AppLayout.compactActionBarHeight 
+    final actionBarHeight = isCompact
+        ? AppLayout.compactActionBarHeight
         : AppLayout.actionBarHeight;
     final iconSize = AppLayout.getIconSize(context, baseSize: 26.0);
     final borderWidth = isCompact ? 1.5 : 2.0;
-    final fontSize = AppLayout.getFontSize(context, 
-        baseSize: isCompact ? 15.0 : 16.0);
+    final fontSize =
+        AppLayout.getFontSize(context, baseSize: isCompact ? 15.0 : 16.0);
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      padding: EdgeInsets.all(isCompact ? AppLayout.spacingS * 0.7 : AppLayout.spacingS),
+    // Use consistent padding for the entire container
+    final containerPadding =
+        isCompact ? AppLayout.spacingS * 0.7 : AppLayout.spacingS;
+
+    // Calculate spacing between buttons for better alignment
+    final buttonSpacing = isCompact ? AppLayout.spacingS : AppLayout.spacingM;
+
+    return Container(
+      padding: EdgeInsets.all(containerPadding),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Settings button
-          _buildCircleButton(
-            context: context,
-            icon: Icons.settings,
-            onTap: onSettingsPressed,
-            tooltip: 'Settings',
-            buttonSize: buttonSize,
-            sidebarWidth: sidebarWidth,
-            sidePadding: sidePadding,
-            iconSize: iconSize,
-            borderWidth: borderWidth,
+          // Settings button with fixed width
+          SizedBox(
+            width: buttonSize,
+            height: buttonSize,
+            child: _buildCircleButton(
+              context: context,
+              icon: Icons.settings,
+              onTap: onSettingsPressed,
+              tooltip: 'Settings',
+              buttonSize: buttonSize,
+              iconSize: iconSize,
+              borderWidth: borderWidth,
+            ),
           ),
 
-          // Explore button
+          // Left spacing
+          SizedBox(width: buttonSpacing),
+
+          // Explore button - takes up remaining space
           Expanded(
             child: Semantics(
               label: 'Explore notes',
@@ -99,17 +105,22 @@ class BottomActionBar extends StatelessWidget {
             ),
           ),
 
-          // Profile button
-          _buildCircleButton(
-            context: context,
-            icon: Icons.person,
-            onTap: onProfilePressed,
-            tooltip: 'Profile',
-            buttonSize: buttonSize,
-            sidebarWidth: sidebarWidth,
-            sidePadding: sidePadding,
-            iconSize: iconSize,
-            borderWidth: borderWidth,
+          // Right spacing
+          SizedBox(width: buttonSpacing),
+
+          // Profile button with fixed width
+          SizedBox(
+            width: buttonSize,
+            height: buttonSize,
+            child: _buildCircleButton(
+              context: context,
+              icon: Icons.person,
+              onTap: onProfilePressed,
+              tooltip: 'Profile',
+              buttonSize: buttonSize,
+              iconSize: iconSize,
+              borderWidth: borderWidth,
+            ),
           ),
         ],
       ),
@@ -122,22 +133,20 @@ class BottomActionBar extends StatelessWidget {
     required VoidCallback onTap,
     required String tooltip,
     required double buttonSize,
-    required double sidebarWidth,
-    required double sidePadding,
     required double iconSize,
     required double borderWidth,
   }) {
     final theme = Theme.of(context);
-    final backgroundColor = theme.brightness == Brightness.light 
-        ? Colors.white 
+    final backgroundColor = theme.brightness == Brightness.light
+        ? Colors.white
         : const Color(0xFF2A2A2A);
-    
+
     return Semantics(
       label: tooltip,
       button: true,
       child: Container(
-        width: sidebarWidth,
-        margin: EdgeInsets.symmetric(horizontal: sidePadding),
+        width: buttonSize,
+        height: buttonSize,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
@@ -163,15 +172,11 @@ class BottomActionBar extends StatelessWidget {
               customBorder: const CircleBorder(),
               splashColor: theme.colorScheme.primary.withOpacity(0.2),
               highlightColor: theme.colorScheme.primary.withOpacity(0.1),
-              child: SizedBox(
-                width: buttonSize,
-                height: buttonSize,
-                child: Center(
-                  child: Icon(
-                    icon,
-                    color: theme.colorScheme.primary,
-                    size: iconSize,
-                  ),
+              child: Center(
+                child: Icon(
+                  icon,
+                  color: theme.colorScheme.primary,
+                  size: iconSize,
                 ),
               ),
             ),
