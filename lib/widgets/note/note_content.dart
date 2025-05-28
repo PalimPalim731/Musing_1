@@ -3,19 +3,16 @@
 import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 import '../../models/tag.dart';
-import 'size_selector.dart';
 import 'note_input_area.dart';
 
-/// Main content area with size selector and note input
+/// Main content area with note input (size selector removed)
 class NoteContent extends StatelessWidget {
-  final String selectedSize;
-  final Function(String) onSizeSelected;
   final TextEditingController noteController;
   final FocusNode? focusNode;
   final List<TagData> appliedTags;
   final Function(TagData)? onTagAdded;
   final Function(TagData)? onTagRemoved;
-  
+
   // Action callbacks
   final VoidCallback? onDelete;
   final VoidCallback? onUndo;
@@ -26,8 +23,6 @@ class NoteContent extends StatelessWidget {
 
   const NoteContent({
     super.key,
-    required this.selectedSize,
-    required this.onSizeSelected,
     required this.noteController,
     this.focusNode,
     this.appliedTags = const [],
@@ -45,10 +40,23 @@ class NoteContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Size selector
-        SizeSelector(
-          selectedSize: selectedSize,
-          onSizeSelected: onSizeSelected,
+        // Vacant space where size selector was - reserved for future functionality
+        SizedBox(
+          height: AppLayout.selectorHeight +
+              (AppLayout.spacingS * 2), // Same height as before
+          child: Container(
+              // Optional: Add a subtle visual placeholder
+              // decoration: BoxDecoration(
+              //   border: Border.all(color: Colors.grey.shade300),
+              //   borderRadius: BorderRadius.circular(AppLayout.buttonRadius),
+              // ),
+              // child: Center(
+              //   child: Text(
+              //     'Reserved for future functionality',
+              //     style: TextStyle(color: Colors.grey.shade400),
+              //   ),
+              // ),
+              ),
         ),
 
         const SizedBox(height: AppLayout.spacingS),

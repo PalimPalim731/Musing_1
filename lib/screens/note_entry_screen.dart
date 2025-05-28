@@ -22,7 +22,7 @@ class NoteEntryScreen extends StatefulWidget {
 class _NoteEntryScreenState extends State<NoteEntryScreen> {
   // Active selections with default values
   String _selectedCategory = 'Private';
-  String _selectedSize = 'Medium';
+  // Size selection removed - will use default 'Medium' for all notes
 
   // Applied tags to the current note (tags that have been dragged onto the note)
   final List<TagData> _appliedTags = [];
@@ -104,12 +104,10 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
                       // Spacing between sidebar and main content
                       SizedBox(width: spacing),
 
-                      // Main note content area with callbacks for actions
+                      // Main note content area with callbacks for actions (size selection removed)
                       Expanded(
                         flex: 8,
                         child: NoteContent(
-                          selectedSize: _selectedSize,
-                          onSizeSelected: _selectSize,
                           noteController: _noteController,
                           focusNode: _noteFocusNode,
                           appliedTags: _appliedTags,
@@ -161,11 +159,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     });
   }
 
-  void _selectSize(String size) {
-    setState(() {
-      _selectedSize = size;
-    });
-  }
+  // Size selection method removed - no longer needed
 
   // Handle tag dropped onto the note
   void _handleTagAdded(TagData tag) {
@@ -205,7 +199,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     debugPrint('Profile pressed');
   }
 
-  // Save the current note
+  // Save the current note (now uses default 'Medium' size)
   void _saveCurrentNote() {
     final content = _noteController.text;
     if (content.isEmpty) return;
@@ -213,12 +207,12 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     // Extract tag IDs from applied tags
     final tagIds = _appliedTags.map((tag) => tag.id).toList();
 
-    // Call the note service to save the note
+    // Call the note service to save the note with default 'Medium' size
     _noteService
         .addNote(
       content: content,
       category: _selectedCategory,
-      size: _selectedSize,
+      size: 'Medium', // Default size since selector was removed
       tagIds: tagIds,
     )
         .then((note) {
