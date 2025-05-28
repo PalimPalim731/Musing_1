@@ -6,8 +6,10 @@ import '../widgets/category/category_sidebar.dart';
 import '../widgets/note/note_content.dart';
 import '../widgets/tag/tag_sidebar.dart';
 import '../widgets/bottom_bar/bottom_action_bar.dart';
+import '../widgets/theme/theme_toggle_button.dart';
 import '../services/note_service.dart';
 import '../services/tag_service.dart';
+import '../services/theme_service.dart';
 import '../models/note.dart';
 import '../models/tag.dart';
 
@@ -30,6 +32,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   // Services for data operations
   final NoteService _noteService = NoteService();
   final TagService _tagService = TagService();
+  final ThemeService _themeService = ThemeService();
 
   // Controller for the note text input
   final TextEditingController _noteController = TextEditingController();
@@ -81,72 +84,84 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return Column(
-              children: [
-                // Main content area
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Left spacing
-                      SizedBox(width: spacing),
+        child: Stack(
+          children: [
+            // Main content
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return Column(
+                  children: [
+                    // Main content area
+                    Expanded(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Left spacing
+                          SizedBox(width: spacing),
 
-                      // Left sidebar with category buttons
-                      CategorySidebar(
-                        selectedCategory: _selectedCategory,
-                        onCategorySelected: _selectCategory,
-                        screenHeight: constraints.maxHeight,
-                        isCompact: isCompact,
+                          // Left sidebar with category buttons
+                          CategorySidebar(
+                            selectedCategory: _selectedCategory,
+                            onCategorySelected: _selectCategory,
+                            screenHeight: constraints.maxHeight,
+                            isCompact: isCompact,
+                          ),
+
+                          // Spacing between sidebar and main content
+                          SizedBox(width: spacing),
+
+                          // Main note content area with callbacks for actions (size selection removed)
+                          Expanded(
+                            flex: 8,
+                            child: NoteContent(
+                              noteController: _noteController,
+                              focusNode: _noteFocusNode,
+                              appliedTags: _appliedTags,
+                              onTagAdded: _handleTagAdded,
+                              onTagRemoved: _handleTagRemoved,
+                              onDelete: _handleDeleteNote,
+                              onUndo: _handleUndoNote,
+                              onFormat: _handleFormatNote,
+                              onCamera: _handleCameraPressed,
+                              onMic: _handleMicPressed,
+                              onLink: _handleLinkPressed,
+                            ),
+                          ),
+
+                          // Spacing between main content and tag sidebar
+                          SizedBox(width: spacing),
+
+                          // Right sidebar with tags
+                          TagSidebar(
+                            screenHeight: constraints.maxHeight,
+                            isCompact: isCompact,
+                          ),
+
+                          // Right spacing
+                          SizedBox(width: spacing),
+                        ],
                       ),
+                    ),
 
-                      // Spacing between sidebar and main content
-                      SizedBox(width: spacing),
+                    // Bottom action bar
+                    BottomActionBar(
+                      onSettingsPressed: _handleSettingsPressed,
+                      onExplorePressed: _handleExplorePressed,
+                      onProfilePressed: _handleProfilePressed,
+                      isCompact: isCompact,
+                    ),
+                  ],
+                );
+              },
+            ),
 
-                      // Main note content area with callbacks for actions (size selection removed)
-                      Expanded(
-                        flex: 8,
-                        child: NoteContent(
-                          noteController: _noteController,
-                          focusNode: _noteFocusNode,
-                          appliedTags: _appliedTags,
-                          onTagAdded: _handleTagAdded,
-                          onTagRemoved: _handleTagRemoved,
-                          onDelete: _handleDeleteNote,
-                          onUndo: _handleUndoNote,
-                          onFormat: _handleFormatNote,
-                          onCamera: _handleCameraPressed,
-                          onMic: _handleMicPressed,
-                          onLink: _handleLinkPressed,
-                        ),
-                      ),
-
-                      // Spacing between main content and tag sidebar
-                      SizedBox(width: spacing),
-
-                      // Right sidebar with tags
-                      TagSidebar(
-                        screenHeight: constraints.maxHeight,
-                        isCompact: isCompact,
-                      ),
-
-                      // Right spacing
-                      SizedBox(width: spacing),
-                    ],
-                  ),
-                ),
-
-                // Bottom action bar
-                BottomActionBar(
-                  onSettingsPressed: _handleSettingsPressed,
-                  onExplorePressed: _handleExplorePressed,
-                  onProfilePressed: _handleProfilePressed,
-                  isCompact: isCompact,
-                ),
-              ],
-            );
-          },
+            // Theme toggle button in top left corner
+            ThemeToggleButton(
+              onToggle: _themeService.toggleTheme,
+              currentThemeMode: _themeService.currentThemeMode,
+              isCompact: isCompact,
+            ),
+          ],
         ),
       ),
     );
