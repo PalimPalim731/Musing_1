@@ -40,26 +40,11 @@ class NoteContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Vacant space where size selector was - reserved for future functionality
+        // Empty space where size selector was - reserved for future functionality
         SizedBox(
           height: AppLayout.selectorHeight +
-              (AppLayout.spacingS * 2), // Same height as before
-          child: Container(
-              // Optional: Add a subtle visual placeholder
-              // decoration: BoxDecoration(
-              //   border: Border.all(color: Colors.grey.shade300),
-              //   borderRadius: BorderRadius.circular(AppLayout.buttonRadius),
-              // ),
-              // child: Center(
-              //   child: Text(
-              //     'Reserved for future functionality',
-              //     style: TextStyle(color: Colors.grey.shade400),
-              //   ),
-              // ),
-              ),
+              (AppLayout.spacingS * 2), // Preserves the original space
         ),
-
-        const SizedBox(height: AppLayout.spacingS),
 
         // Note input area with callbacks passed through
         Expanded(

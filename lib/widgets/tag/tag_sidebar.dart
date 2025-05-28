@@ -41,9 +41,8 @@ class _TagSidebarState extends State<TagSidebar> {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate the exact offsets to align with note content area
-    final topOffset =
-        AppLayout.spacingS + AppLayout.selectorHeight + AppLayout.spacingS;
+    // Add topOffset to align with note container top (after the empty space)
+    final topOffset = AppLayout.selectorHeight + (AppLayout.spacingS * 2);
     final bottomOffset = AppLayout.spacingS;
     final sidebarWidth =
         AppLayout.getSidebarWidth(context, isCompact: widget.isCompact);
@@ -60,32 +59,35 @@ class _TagSidebarState extends State<TagSidebar> {
           final availableHeight =
               constraints.maxHeight - topOffset - bottomOffset;
 
-          // Calculate tag height and spacing to match CategorySidebar spacing
+          // Calculate tag height with same spacing logic as category buttons
           final totalItems = _tags.length;
-          final totalSpacing = (totalItems - 1) *
-              AppLayout.spacingS; // Fixed spacing like categories
+          final totalSpacing =
+              (totalItems - 1) * AppLayout.spacingS; // Same as category buttons
+
+          // Distribute remaining height equally among tags - much larger tags now
           final tagHeight = (availableHeight - totalSpacing) / totalItems;
+          final spacerHeight =
+              AppLayout.spacingS; // Consistent with category button spacing
 
           return Container(
             padding: EdgeInsets.only(top: topOffset, bottom: bottomOffset),
             child: Column(
-              children: [
-                // Generate tags with fixed spacing between them (same as categories)
-                for (int i = 0; i < _tags.length; i++) ...[
-                  EditableTagItem(
+              children: List.generate(totalItems * 2 - 1, (index) {
+                // Even indices are tags, odd indices are spacers
+                if (index.isEven) {
+                  final tagIndex = index ~/ 2;
+                  return EditableTagItem(
                     height: tagHeight,
-                    tag: _tags[i],
-                    onTap: () => _handleTagTap(_tags[i]),
+                    tag: _tags[tagIndex],
+                    onTap: () => _handleTagTap(_tags[tagIndex]),
                     onRename: (newLabel) =>
-                        _handleTagRename(_tags[i], newLabel),
+                        _handleTagRename(_tags[tagIndex], newLabel),
                     isCompact: widget.isCompact,
-                  ),
-
-                  // Add spacing between tags (except after the last one)
-                  if (i < _tags.length - 1)
-                    SizedBox(height: AppLayout.spacingS),
-                ],
-              ],
+                  );
+                } else {
+                  return SizedBox(height: spacerHeight);
+                }
+              }),
             ),
           );
         },

@@ -43,9 +43,8 @@ class _CategorySidebarState extends State<CategorySidebar> {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate the offsets for proper alignment with content
-    final topOffset =
-        AppLayout.spacingS + AppLayout.selectorHeight + AppLayout.spacingS;
+    // Add topOffset to align with note container top (after the empty space)
+    final topOffset = AppLayout.selectorHeight + (AppLayout.spacingS * 2);
     final bottomOffset = AppLayout.spacingS;
     final sidebarWidth =
         AppLayout.getSidebarWidth(context, isCompact: widget.isCompact);
