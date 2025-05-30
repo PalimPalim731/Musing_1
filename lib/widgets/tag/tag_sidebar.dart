@@ -6,7 +6,7 @@ import '../../models/tag.dart';
 import '../../services/tag_service.dart';
 import 'editable_tag_item.dart';
 
-/// Right sidebar with tags
+/// Right sidebar with tags (shows current page only)
 class TagSidebar extends StatefulWidget {
   final double screenHeight;
   final bool isCompact;
@@ -26,15 +26,26 @@ class TagSidebar extends StatefulWidget {
 class _TagSidebarState extends State<TagSidebar> {
   final TagService _tagService = TagService();
   late List<TagData> _tags;
+  late int _currentPage;
 
   @override
   void initState() {
     super.initState();
-    _tags = _tagService.getAllTags();
+    _tags = _tagService.getCurrentPageTags();
+    _currentPage = _tagService.currentPage;
+
     // Listen to tag changes (like renames)
     _tagService.tagsStream.listen((updatedTags) {
       setState(() {
-        _tags = updatedTags;
+        _tags = updatedTags; // This now only contains current page tags
+      });
+    });
+
+    // Listen to page changes
+    _tagService.pageStream.listen((newPage) {
+      setState(() {
+        _currentPage = newPage;
+        _tags = _tagService.getCurrentPageTags();
       });
     });
   }
@@ -60,7 +71,7 @@ class _TagSidebarState extends State<TagSidebar> {
               constraints.maxHeight - topOffset - bottomOffset;
 
           // Calculate tag height with same spacing logic as category buttons
-          final totalItems = _tags.length;
+          final totalItems = _tags.length; // Always 7 tags per page
           final totalSpacing =
               (totalItems - 1) * AppLayout.spacingS; // Same as category buttons
 

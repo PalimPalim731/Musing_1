@@ -7,6 +7,7 @@ import '../widgets/note/note_content.dart';
 import '../widgets/tag/tag_sidebar.dart';
 import '../widgets/bottom_bar/bottom_action_bar.dart';
 import '../widgets/theme/theme_toggle_button.dart';
+import '../widgets/tag/tag_page_toggle_button.dart';
 import '../services/note_service.dart';
 import '../services/tag_service.dart';
 import '../services/theme_service.dart';
@@ -40,9 +41,15 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   // Focus node to manage keyboard focus
   final FocusNode _noteFocusNode = FocusNode();
 
+  // Track current tag page
+  late int _currentTagPage;
+
   @override
   void initState() {
     super.initState();
+
+    // Initialize current tag page
+    _currentTagPage = _tagService.currentPage;
 
     // Listen to tag changes (like renames) to update applied tags
     _tagService.tagsStream.listen((updatedTags) {
@@ -50,9 +57,12 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
       if (_appliedTags.isNotEmpty) {
         setState(() {
           // Update our applied tags with the latest tag data
+          // Note: updatedTags now only contains current page tags, so we need to check all tags
+          final allTags = _tagService.getAllTags();
+
           for (int i = 0; i < _appliedTags.length; i++) {
             final currentTag = _appliedTags[i];
-            final updatedTag = updatedTags.firstWhere(
+            final updatedTag = allTags.firstWhere(
               (tag) => tag.id == currentTag.id,
               orElse: () => currentTag, // Keep the old one if not found
             );
@@ -64,6 +74,13 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
           }
         });
       }
+    });
+
+    // Listen to tag page changes
+    _tagService.pageStream.listen((newPage) {
+      setState(() {
+        _currentTagPage = newPage;
+      });
     });
   }
 
@@ -161,6 +178,13 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
               currentThemeMode: _themeService.currentThemeMode,
               isCompact: isCompact,
             ),
+
+            // Tag page toggle button in top right corner
+            TagPageToggleButton(
+              onToggle: _handleTagPageToggle,
+              currentPage: _currentTagPage,
+              isCompact: isCompact,
+            ),
           ],
         ),
       ),
@@ -174,7 +198,11 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     });
   }
 
-  // Size selection method removed - no longer needed
+  // Handle tag page toggle
+  void _handleTagPageToggle() {
+    _tagService.togglePage();
+    debugPrint('Switched to tag page ${_tagService.currentPage + 1}');
+  }
 
   // Handle tag dropped onto the note
   void _handleTagAdded(TagData tag) {

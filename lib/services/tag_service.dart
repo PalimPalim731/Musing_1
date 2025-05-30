@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/tag.dart';
 
-/// Service for managing tags
+/// Service for managing tags with support for two pages
 class TagService {
   // Singleton pattern
   static final TagService _instance = TagService._internal();
@@ -12,15 +12,19 @@ class TagService {
   factory TagService() => _instance;
 
   TagService._internal() {
-    // Initialize with default tags
-    _tags.addAll(_defaultTags);
+    // Initialize with default tags for both pages
+    _tags.addAll(_defaultTagsPage1);
+    _tags.addAll(_defaultTagsPage2);
   }
 
   // Maximum tag length constant
   static const int maxTagLength = 10;
 
-  // Default tags - all within 10 character limit (now 7 total tags)
-  final List<TagData> _defaultTags = [
+  // Current active page (0 = first page, 1 = second page)
+  int _currentPage = 0;
+
+  // Default tags for page 1 (IDs 1-7)
+  final List<TagData> _defaultTagsPage1 = [
     TagData(id: '1', label: 'Work'),
     TagData(id: '2', label: 'Ideas'),
     TagData(id: '3', label: 'Tasks'),
@@ -30,14 +34,50 @@ class TagService {
     TagData(id: '7', label: 'Goals'),
   ];
 
-  // In-memory storage for tags - in a real app, this would be a database
+  // Default tags for page 2 (IDs 8-14)
+  final List<TagData> _defaultTagsPage2 = [
+    TagData(id: '8', label: 'Family'),
+    TagData(id: '9', label: 'Finance'),
+    TagData(id: '10', label: 'Learning'),
+    TagData(id: '11', label: 'Creative'),
+    TagData(id: '12', label: 'Social'),
+    TagData(id: '13', label: 'Shopping'),
+    TagData(id: '14', label: 'Hobbies'),
+  ];
+
+  // In-memory storage for all tags - in a real app, this would be a database
   final List<TagData> _tags = [];
 
   // Stream controller for broadcasting tag changes
   final _tagsStreamController = StreamController<List<TagData>>.broadcast();
 
+  // Stream controller for broadcasting page changes
+  final _pageStreamController = StreamController<int>.broadcast();
+
   // Stream of tags for listening to changes
   Stream<List<TagData>> get tagsStream => _tagsStreamController.stream;
+
+  // Stream of page changes for listening to page switches
+  Stream<int> get pageStream => _pageStreamController.stream;
+
+  // Get current page
+  int get currentPage => _currentPage;
+
+  // Toggle between pages
+  void togglePage() {
+    _currentPage = _currentPage == 0 ? 1 : 0;
+    _notifyPageListeners();
+    _notifyTagListeners(); // Also notify tag listeners since visible tags changed
+  }
+
+  // Set specific page
+  void setPage(int page) {
+    if (page >= 0 && page <= 1 && page != _currentPage) {
+      _currentPage = page;
+      _notifyPageListeners();
+      _notifyTagListeners();
+    }
+  }
 
   // Utility method to truncate tag labels to max length
   String _truncateLabel(String label) {
@@ -46,9 +86,31 @@ class TagService {
         : label;
   }
 
-  // Get all tags
+  // Get all tags (all 14 tags across both pages)
   List<TagData> getAllTags() {
     return List.unmodifiable(_tags);
+  }
+
+  // Get tags for the current page only (7 tags)
+  List<TagData> getCurrentPageTags() {
+    return getTagsForPage(_currentPage);
+  }
+
+  // Get tags for a specific page
+  List<TagData> getTagsForPage(int page) {
+    if (page == 0) {
+      // Page 1: IDs 1-7
+      return _tags.where((tag) {
+        final id = int.tryParse(tag.id) ?? 0;
+        return id >= 1 && id <= 7;
+      }).toList();
+    } else {
+      // Page 2: IDs 8-14
+      return _tags.where((tag) {
+        final id = int.tryParse(tag.id) ?? 0;
+        return id >= 8 && id <= 14;
+      }).toList();
+    }
   }
 
   // Get a tag by ID
@@ -60,7 +122,7 @@ class TagService {
     }
   }
 
-  // Add a new tag
+  // Add a new tag (will be added to the current page)
   Future<TagData> addTag(String label) async {
     // Truncate label to max length
     final truncatedLabel = _truncateLabel(label.trim());
@@ -70,12 +132,18 @@ class TagService {
     }
 
     // Generate a unique ID - in a real app, this would be handled by the database
-    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    // For now, find the highest ID and add 1
+    int highestId = 0;
+    for (var tag in _tags) {
+      final id = int.tryParse(tag.id) ?? 0;
+      if (id > highestId) highestId = id;
+    }
+    final newId = (highestId + 1).toString();
 
-    final tag = TagData(id: id, label: truncatedLabel);
+    final tag = TagData(id: newId, label: truncatedLabel);
 
     _tags.add(tag);
-    _notifyListeners();
+    _notifyTagListeners();
 
     return tag;
   }
@@ -112,7 +180,7 @@ class TagService {
 
     final updatedTag = _tags[index].copyWith(label: truncatedLabel);
     _tags[index] = updatedTag;
-    _notifyListeners();
+    _notifyTagListeners();
 
     return updatedTag;
   }
@@ -120,7 +188,8 @@ class TagService {
   // Delete a tag
   Future<bool> deleteTag(String id) async {
     // Don't allow deleting default tags
-    if (_defaultTags.any((tag) => tag.id == id)) {
+    if (_defaultTagsPage1.any((tag) => tag.id == id) ||
+        _defaultTagsPage2.any((tag) => tag.id == id)) {
       return false;
     }
 
@@ -131,7 +200,7 @@ class TagService {
     }
 
     _tags.removeAt(index);
-    _notifyListeners();
+    _notifyTagListeners();
 
     return true;
   }
@@ -148,7 +217,7 @@ class TagService {
     final updatedTag = tag.copyWith(isSelected: !tag.isSelected);
 
     _tags[index] = updatedTag;
-    _notifyListeners();
+    _notifyTagListeners();
 
     return updatedTag;
   }
@@ -165,26 +234,38 @@ class TagService {
     }
 
     if (changed) {
-      _notifyListeners();
+      _notifyTagListeners();
     }
   }
 
   // Reset to default tags
   Future<void> resetToDefaults() async {
     _tags.clear();
-    _tags.addAll(_defaultTags);
-    _notifyListeners();
+    _tags.addAll(_defaultTagsPage1);
+    _tags.addAll(_defaultTagsPage2);
+    _currentPage = 0; // Reset to first page
+    _notifyTagListeners();
+    _notifyPageListeners();
   }
 
-  // Notify listeners of changes
-  void _notifyListeners() {
+  // Notify tag listeners of changes
+  void _notifyTagListeners() {
     if (!_tagsStreamController.isClosed) {
-      _tagsStreamController.add(List.unmodifiable(_tags));
+      // Send only the current page's tags to the UI
+      _tagsStreamController.add(List.unmodifiable(getCurrentPageTags()));
+    }
+  }
+
+  // Notify page listeners of changes
+  void _notifyPageListeners() {
+    if (!_pageStreamController.isClosed) {
+      _pageStreamController.add(_currentPage);
     }
   }
 
   // Dispose resources
   void dispose() {
     _tagsStreamController.close();
+    _pageStreamController.close();
   }
 }
