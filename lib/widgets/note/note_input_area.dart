@@ -13,7 +13,7 @@ class NoteInputArea extends StatelessWidget {
   final List<TagData> appliedTags;
   final Function(TagData)? onTagAdded;
   final Function(TagData)? onTagRemoved;
-  
+
   // Action callbacks
   final VoidCallback? onDelete;
   final VoidCallback? onUndo;
@@ -39,12 +39,13 @@ class NoteInputArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isCompact = MediaQuery.of(context).size.width < AppLayout.tabletBreakpoint;
+    final bool isCompact =
+        MediaQuery.of(context).size.width < AppLayout.tabletBreakpoint;
     final theme = Theme.of(context);
     final iconSize = AppLayout.getIconSize(context);
     final actionBarHeight = isCompact ? 45.0 : 60.0;
     final padding = isCompact ? 10.0 : 16.0;
-    final contentPadding = isCompact 
+    final contentPadding = isCompact
         ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
         : const EdgeInsets.symmetric(horizontal: 16, vertical: 12);
 
@@ -62,13 +63,17 @@ class NoteInputArea extends StatelessWidget {
       builder: (context, candidateItems, rejectedItems) {
         // Add a subtle highlight effect when tag is hovering
         final bool isHighlighted = candidateItems.isNotEmpty;
-        
+
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: theme.brightness == Brightness.light 
-                ? isHighlighted ? Colors.blue.shade50 : Colors.white 
-                : isHighlighted ? const Color(0xFF1A2030) : const Color(0xFF1E1E1E),
+            color: theme.brightness == Brightness.light
+                ? isHighlighted
+                    ? Colors.blue.shade50
+                    : Colors.white
+                : isHighlighted
+                    ? const Color(0xFF1A2030)
+                    : const Color(0xFF1E1E1E),
             border: Border.all(
               color: isHighlighted
                   ? theme.colorScheme.primary.withOpacity(0.5)
@@ -100,15 +105,16 @@ class NoteInputArea extends StatelessWidget {
 
               // Divider after top action bar
               Divider(
-                height: 1, 
-                thickness: 1, 
+                height: 1,
+                thickness: 1,
                 color: theme.dividerTheme.color,
               ),
 
               // Text input field
               Expanded(
                 child: Padding(
-                  padding: EdgeInsets.only(top: isCompact ? 5.0 : AppLayout.spacingS),
+                  padding: EdgeInsets.only(
+                      top: isCompact ? 5.0 : AppLayout.spacingS),
                   child: TextField(
                     controller: controller,
                     focusNode: focusNode,
@@ -131,25 +137,24 @@ class NoteInputArea extends StatelessWidget {
                 ),
               ),
 
-              // Display applied tags at the bottom left
+              // Display applied tags at the bottom left - now supports multiple rows
               if (appliedTags.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: TagList(
-                      tags: appliedTags,
-                      onRemoveTag: onTagRemoved,
-                      isSmall: true,
-                      isScrollable: true,
-                    ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.only(
+                      left: 12.0, right: 12.0, bottom: 8.0),
+                  child: TagList(
+                    tags: appliedTags,
+                    onRemoveTag: onTagRemoved,
+                    isSmall: true,
+                    allowMultiRow: true, // Enable multi-row wrapping
                   ),
                 ),
 
               // Divider before bottom action bar
               Divider(
-                height: 1, 
-                thickness: 1, 
+                height: 1,
+                thickness: 1,
                 color: theme.dividerTheme.color,
               ),
 
@@ -200,7 +205,7 @@ class TopActionBar extends StatelessWidget {
         children: [
           // Spacer for better balance
           const Spacer(flex: 1),
-          
+
           // Delete button
           ActionButton(
             icon: Icons.delete_outline,
@@ -208,10 +213,10 @@ class TopActionBar extends StatelessWidget {
             iconSize: iconSize,
             tooltip: 'Delete note',
           ),
-          
+
           // Center spacer
           const Spacer(flex: 2),
-          
+
           // Undo button
           ActionButton(
             icon: Icons.replay_outlined,
@@ -219,10 +224,10 @@ class TopActionBar extends StatelessWidget {
             iconSize: iconSize,
             tooltip: 'Undo',
           ),
-          
+
           // Center spacer
           const Spacer(flex: 2),
-          
+
           // Format button (changed from Save button)
           ActionButton(
             icon: Icons.format_align_left,
@@ -230,7 +235,7 @@ class TopActionBar extends StatelessWidget {
             iconSize: iconSize,
             tooltip: 'Format text',
           ),
-          
+
           // Spacer for better balance
           const Spacer(flex: 1),
         ],
@@ -268,7 +273,7 @@ class BottomActionButtons extends StatelessWidget {
         children: [
           // Spacer for better balance
           const Spacer(flex: 1),
-          
+
           // Camera button
           ActionButton(
             icon: Icons.camera_alt_outlined,
@@ -276,10 +281,10 @@ class BottomActionButtons extends StatelessWidget {
             iconSize: iconSize,
             tooltip: 'Take photo',
           ),
-          
+
           // Center spacer
           const Spacer(flex: 2),
-          
+
           // Mic button
           ActionButton(
             icon: Icons.mic_none_outlined,
@@ -287,10 +292,10 @@ class BottomActionButtons extends StatelessWidget {
             iconSize: iconSize,
             tooltip: 'Record audio',
           ),
-          
+
           // Center spacer
           const Spacer(flex: 2),
-          
+
           // Link button
           ActionButton(
             icon: Icons.link,
@@ -298,7 +303,7 @@ class BottomActionButtons extends StatelessWidget {
             iconSize: iconSize,
             tooltip: 'Add link',
           ),
-          
+
           // Spacer for better balance
           const Spacer(flex: 1),
         ],
