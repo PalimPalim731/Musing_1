@@ -10,6 +10,7 @@ import '../widgets/theme/theme_toggle_button.dart';
 import '../widgets/tag/tag_page_toggle_button.dart';
 import '../services/note_service.dart';
 import '../services/tag_service.dart';
+import '../services/rectangle_service.dart'; // ← ADD THIS LINE
 import '../services/theme_service.dart';
 import '../models/note.dart';
 import '../models/tag.dart';

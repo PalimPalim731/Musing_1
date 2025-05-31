@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 import '../../models/tag.dart';
 import 'note_input_area.dart';
+import '../rectangle/rectangle_bar.dart';
 
-/// Main content area with note input (size selector removed)
+/// Main content area with note input and rectangle bar
 class NoteContent extends StatelessWidget {
   final TextEditingController noteController;
   final FocusNode? focusNode;
@@ -38,12 +39,19 @@ class NoteContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isCompact =
+        MediaQuery.of(context).size.width < AppLayout.tabletBreakpoint;
+
     return Column(
       children: [
-        // Empty space where size selector was - reserved for future functionality
-        SizedBox(
-          height: AppLayout.selectorHeight +
-              (AppLayout.spacingS * 2), // Preserves the original space
+        // Rectangle bar with 7 draggable rectangles
+        RectangleBar(
+          isCompact: isCompact,
+          onRectangleSelected: (rectangle) {
+            // When a rectangle is tapped, treat it like a tag being added
+            onTagAdded?.call(rectangle);
+            debugPrint('Rectangle selected: ${rectangle.label}');
+          },
         ),
 
         // Note input area with callbacks passed through
