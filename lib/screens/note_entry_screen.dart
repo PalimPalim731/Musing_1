@@ -10,7 +10,7 @@ import '../widgets/theme/theme_toggle_button.dart';
 import '../widgets/tag/tag_page_toggle_button.dart';
 import '../services/note_service.dart';
 import '../services/tag_service.dart';
-import '../services/rectangle_service.dart'; // ← ADD THIS LINE
+import '../services/rectangle_service.dart';
 import '../services/theme_service.dart';
 import '../models/note.dart';
 import '../models/tag.dart';
@@ -26,14 +26,15 @@ class NoteEntryScreen extends StatefulWidget {
 class _NoteEntryScreenState extends State<NoteEntryScreen> {
   // Active selections with default values
   String _selectedCategory = 'Private';
-  // Size selection removed - will use default 'Medium' for all notes
 
-  // Applied tags to the current note (tags that have been dragged onto the note)
-  final List<TagData> _appliedTags = [];
+  // Applied tags to the current note (separated by type)
+  final List<TagData> _appliedQuickTags = []; // Rectangle-based tags (3 chars)
+  final List<TagData> _appliedRegularTags = []; // Sidebar tags (longer names)
 
   // Services for data operations
   final NoteService _noteService = NoteService();
   final TagService _tagService = TagService();
+  final RectangleService _rectangleService = RectangleService();
   final ThemeService _themeService = ThemeService();
 
   // Controller for the note text input
@@ -54,23 +55,39 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
 
     // Listen to tag changes (like renames) to update applied tags
     _tagService.tagsStream.listen((updatedTags) {
-      // If any applied tags have been renamed, update them
-      if (_appliedTags.isNotEmpty) {
+      // Update applied regular tags if any have been renamed
+      if (_appliedRegularTags.isNotEmpty) {
         setState(() {
-          // Update our applied tags with the latest tag data
-          // Note: updatedTags now only contains current page tags, so we need to check all tags
           final allTags = _tagService.getAllTags();
 
-          for (int i = 0; i < _appliedTags.length; i++) {
-            final currentTag = _appliedTags[i];
+          for (int i = 0; i < _appliedRegularTags.length; i++) {
+            final currentTag = _appliedRegularTags[i];
             final updatedTag = allTags.firstWhere(
               (tag) => tag.id == currentTag.id,
-              orElse: () => currentTag, // Keep the old one if not found
+              orElse: () => currentTag,
             );
 
-            // Replace tag if it was updated
             if (updatedTag.label != currentTag.label) {
-              _appliedTags[i] = updatedTag;
+              _appliedRegularTags[i] = updatedTag;
+            }
+          }
+        });
+      }
+    });
+
+    // Listen to rectangle changes (like renames) to update applied quick-tags
+    _rectangleService.rectanglesStream.listen((updatedRectangles) {
+      if (_appliedQuickTags.isNotEmpty) {
+        setState(() {
+          for (int i = 0; i < _appliedQuickTags.length; i++) {
+            final currentTag = _appliedQuickTags[i];
+            final updatedRectangle = updatedRectangles.firstWhere(
+              (rectangle) => rectangle.id == currentTag.id,
+              orElse: () => currentTag,
+            );
+
+            if (updatedRectangle.label != currentTag.label) {
+              _appliedQuickTags[i] = updatedRectangle;
             }
           }
         });
@@ -128,13 +145,14 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
                           // Spacing between sidebar and main content
                           SizedBox(width: spacing),
 
-                          // Main note content area with callbacks for actions (size selection removed)
+                          // Main note content area with callbacks for actions
                           Expanded(
                             flex: 8,
                             child: NoteContent(
                               noteController: _noteController,
                               focusNode: _noteFocusNode,
-                              appliedTags: _appliedTags,
+                              appliedQuickTags: _appliedQuickTags,
+                              appliedRegularTags: _appliedRegularTags,
                               onTagAdded: _handleTagAdded,
                               onTagRemoved: _handleTagRemoved,
                               onDelete: _handleDeleteNote,
@@ -205,22 +223,42 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     debugPrint('Switched to tag page ${_tagService.currentPage + 1}');
   }
 
+  // Determine if a tag is a quick-tag (rectangle) based on ID
+  bool _isQuickTag(TagData tag) {
+    final id = int.tryParse(tag.id) ?? 0;
+    return id >= 101; // Rectangle IDs start from 101
+  }
+
   // Handle tag dropped onto the note
   void _handleTagAdded(TagData tag) {
     setState(() {
-      if (!_appliedTags.contains(tag)) {
-        _appliedTags.add(tag);
+      if (_isQuickTag(tag)) {
+        // Add to quick-tags if not already present
+        if (!_appliedQuickTags.any((t) => t.id == tag.id)) {
+          _appliedQuickTags.add(tag);
+          debugPrint('Quick-tag added to note: ${tag.label}');
+        }
+      } else {
+        // Add to regular-tags if not already present
+        if (!_appliedRegularTags.any((t) => t.id == tag.id)) {
+          _appliedRegularTags.add(tag);
+          debugPrint('Regular-tag added to note: ${tag.label}');
+        }
       }
     });
-    debugPrint('Tag added to note: ${tag.label}');
   }
 
   // Handle removal of tag from the note
   void _handleTagRemoved(TagData tag) {
     setState(() {
-      _appliedTags.removeWhere((t) => t.id == tag.id);
+      if (_isQuickTag(tag)) {
+        _appliedQuickTags.removeWhere((t) => t.id == tag.id);
+        debugPrint('Quick-tag removed from note: ${tag.label}');
+      } else {
+        _appliedRegularTags.removeWhere((t) => t.id == tag.id);
+        debugPrint('Regular-tag removed from note: ${tag.label}');
+      }
     });
-    debugPrint('Tag removed from note: ${tag.label}');
   }
 
   // Handler methods for bottom bar actions
@@ -230,8 +268,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   }
 
   void _handleExplorePressed() {
-    // In a real app, save the note first if needed
-    // This is now a separate action since we removed the Save button
+    // Save the note first if needed
     _saveCurrentNote();
 
     // TODO: Navigate to explore screen
@@ -243,24 +280,31 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     debugPrint('Profile pressed');
   }
 
-  // Save the current note (now uses default 'Medium' size)
+  // Save the current note (combines both tag types)
   void _saveCurrentNote() {
     final content = _noteController.text;
     if (content.isEmpty) return;
 
-    // Extract tag IDs from applied tags
-    final tagIds = _appliedTags.map((tag) => tag.id).toList();
+    // Combine all applied tag IDs (both quick-tags and regular-tags)
+    final allTagIds = [
+      ..._appliedQuickTags.map((tag) => tag.id),
+      ..._appliedRegularTags.map((tag) => tag.id),
+    ];
 
-    // Call the note service to save the note with default 'Medium' size
+    // Call the note service to save the note
     _noteService
         .addNote(
       content: content,
       category: _selectedCategory,
-      size: 'Medium', // Default size since selector was removed
-      tagIds: tagIds,
+      size: 'Medium', // Default size
+      tagIds: allTagIds,
     )
         .then((note) {
       debugPrint('Note saved: ${note.id}');
+      debugPrint(
+          'Quick-tags: ${_appliedQuickTags.map((t) => t.label).join(", ")}');
+      debugPrint(
+          'Regular-tags: ${_appliedRegularTags.map((t) => t.label).join(", ")}');
 
       // Show confirmation to the user
       ScaffoldMessenger.of(context).showSnackBar(
@@ -274,7 +318,8 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
       _noteController.clear();
 
       setState(() {
-        _appliedTags.clear();
+        _appliedQuickTags.clear();
+        _appliedRegularTags.clear();
       });
     });
   }
@@ -298,9 +343,10 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
               _noteController.clear();
               Navigator.of(context).pop();
 
-              // Reset applied tags
+              // Reset both types of applied tags
               setState(() {
-                _appliedTags.clear();
+                _appliedQuickTags.clear();
+                _appliedRegularTags.clear();
               });
             },
             child: const Text('DELETE'),
@@ -311,18 +357,12 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   }
 
   void _handleUndoNote() {
-    // In a real implementation, you would track changes
-    // and implement an undo stack
-
-    // For now just log the action
     debugPrint('Undo pressed');
   }
 
   void _handleFormatNote() {
-    // This is a placeholder for future formatting functionality
     debugPrint('Format pressed - Feature to be implemented later');
 
-    // Sample implementation - show a snackbar to indicate the feature is coming
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Text formatting options coming soon!'),
@@ -332,28 +372,14 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   }
 
   void _handleCameraPressed() {
-    // In a real implementation, you would:
-    // - Request camera permissions if needed
-    // - Launch camera interface
-    // - Handle the captured image
-
     debugPrint('Camera pressed');
   }
 
   void _handleMicPressed() {
-    // In a real implementation, you would:
-    // - Request microphone permissions if needed
-    // - Start voice recording
-    // - Handle the recorded audio
-
     debugPrint('Mic pressed');
   }
 
   void _handleLinkPressed() {
-    // In a real implementation, you would:
-    // - Show a dialog to enter a URL
-    // - Validate and attach the link
-
     debugPrint('Link pressed');
   }
 }
