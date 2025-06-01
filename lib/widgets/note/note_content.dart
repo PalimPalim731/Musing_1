@@ -10,7 +10,8 @@ import '../rectangle/rectangle_bar.dart';
 class NoteContent extends StatelessWidget {
   final TextEditingController noteController;
   final FocusNode? focusNode;
-  final List<TagData> appliedTags;
+  final List<TagData> appliedQuickTags; // Rectangle-based tags (3 chars)
+  final List<TagData> appliedRegularTags; // Sidebar tags (longer names)
   final Function(TagData)? onTagAdded;
   final Function(TagData)? onTagRemoved;
 
@@ -26,7 +27,8 @@ class NoteContent extends StatelessWidget {
     super.key,
     required this.noteController,
     this.focusNode,
-    this.appliedTags = const [],
+    this.appliedQuickTags = const [],
+    this.appliedRegularTags = const [],
     this.onTagAdded,
     this.onTagRemoved,
     this.onDelete,
@@ -37,6 +39,23 @@ class NoteContent extends StatelessWidget {
     this.onLink,
   });
 
+  // Legacy constructor for backward compatibility
+  const NoteContent.legacy({
+    super.key,
+    required this.noteController,
+    this.focusNode,
+    List<TagData> appliedTags = const [],
+    this.onTagAdded,
+    this.onTagRemoved,
+    this.onDelete,
+    this.onUndo,
+    this.onFormat,
+    this.onCamera,
+    this.onMic,
+    this.onLink,
+  })  : appliedQuickTags = const [],
+        appliedRegularTags = appliedTags;
+
   @override
   Widget build(BuildContext context) {
     final bool isCompact =
@@ -44,13 +63,13 @@ class NoteContent extends StatelessWidget {
 
     return Column(
       children: [
-        // Rectangle bar with 7 draggable rectangles
+        // Rectangle bar with 7 draggable rectangles (quick-tags)
         RectangleBar(
           isCompact: isCompact,
           onRectangleSelected: (rectangle) {
-            // When a rectangle is tapped, treat it like a tag being added
+            // When a rectangle is tapped, treat it as a quick-tag being added
             onTagAdded?.call(rectangle);
-            debugPrint('Rectangle selected: ${rectangle.label}');
+            debugPrint('Quick-tag selected: ${rectangle.label}');
           },
         ),
 
@@ -59,7 +78,8 @@ class NoteContent extends StatelessWidget {
           child: NoteInputArea(
             controller: noteController,
             focusNode: focusNode,
-            appliedTags: appliedTags,
+            appliedQuickTags: appliedQuickTags,
+            appliedRegularTags: appliedRegularTags,
             onTagAdded: onTagAdded,
             onTagRemoved: onTagRemoved,
             onDelete: onDelete,

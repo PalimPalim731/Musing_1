@@ -10,7 +10,8 @@ import 'action_button.dart';
 class NoteInputArea extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode? focusNode;
-  final List<TagData> appliedTags;
+  final List<TagData> appliedQuickTags; // Rectangle-based tags (3 chars)
+  final List<TagData> appliedRegularTags; // Sidebar tags (longer names)
   final Function(TagData)? onTagAdded;
   final Function(TagData)? onTagRemoved;
 
@@ -26,7 +27,8 @@ class NoteInputArea extends StatelessWidget {
     super.key,
     required this.controller,
     this.focusNode,
-    this.appliedTags = const [],
+    this.appliedQuickTags = const [],
+    this.appliedRegularTags = const [],
     this.onTagAdded,
     this.onTagRemoved,
     this.onDelete,
@@ -36,6 +38,23 @@ class NoteInputArea extends StatelessWidget {
     this.onMic,
     this.onLink,
   });
+
+  // Legacy constructor for backward compatibility
+  const NoteInputArea.legacy({
+    super.key,
+    required this.controller,
+    this.focusNode,
+    List<TagData> appliedTags = const [],
+    this.onTagAdded,
+    this.onTagRemoved,
+    this.onDelete,
+    this.onUndo,
+    this.onFormat,
+    this.onCamera,
+    this.onMic,
+    this.onLink,
+  })  : appliedQuickTags = const [],
+        appliedRegularTags = appliedTags;
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +77,15 @@ class NoteInputArea extends StatelessWidget {
       },
       // Change visual feedback when tag is being dragged over
       onWillAccept: (TagData? tag) {
-        return tag != null && !appliedTags.contains(tag);
+        if (tag == null) return false;
+
+        // Check if tag is already applied (in either quick or regular tags)
+        final alreadyAppliedAsQuick =
+            appliedQuickTags.any((t) => t.id == tag.id);
+        final alreadyAppliedAsRegular =
+            appliedRegularTags.any((t) => t.id == tag.id);
+
+        return !alreadyAppliedAsQuick && !alreadyAppliedAsRegular;
       },
       builder: (context, candidateItems, rejectedItems) {
         // Add a subtle highlight effect when tag is hovering
@@ -137,17 +164,17 @@ class NoteInputArea extends StatelessWidget {
                 ),
               ),
 
-              // Display applied tags at the bottom left - now supports multiple rows
-              if (appliedTags.isNotEmpty)
+              // Display applied tags at the bottom - separated by type
+              if (appliedQuickTags.isNotEmpty || appliedRegularTags.isNotEmpty)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.only(
                       left: 12.0, right: 12.0, bottom: 8.0),
                   child: TagList(
-                    tags: appliedTags,
+                    quickTags: appliedQuickTags,
+                    regularTags: appliedRegularTags,
                     onRemoveTag: onTagRemoved,
                     isSmall: true,
-                    allowMultiRow: true, // Enable multi-row wrapping
                   ),
                 ),
 
