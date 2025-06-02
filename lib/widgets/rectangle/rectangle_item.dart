@@ -2,9 +2,11 @@
 
 import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
+import '../../config/theme/app_theme.dart';
 import '../../models/tag.dart';
+import '../../services/tag_service.dart';
 
-/// A rectangle item that can be edited and dragged, with special text layout
+/// A rectangle item that can be edited and dragged, with special text layout and category colors
 class RectangleItem extends StatefulWidget {
   final double width;
   final double height;
@@ -85,19 +87,28 @@ class _RectangleItemState extends State<RectangleItem> {
         ? (widget.isCompact ? 1.5 : 2.0)
         : (widget.isCompact ? 1.0 : 1.2);
 
+    // Get category-specific color for rectangles
+    // Since rectangles are quick-tags, we'll use the current category's color
+    // but with light variant to differentiate from regular tags
+    final tagService = TagService();
+    final currentCategory = tagService.currentCategory;
+    final rectangleColor = AppTheme.getCategoryColorLight(currentCategory);
+
     if (_isEditing) {
-      return _buildEditingMode(theme, radius, borderWidth);
+      return _buildEditingMode(theme, radius, borderWidth, rectangleColor);
     } else {
-      return _buildNormalMode(theme, isSelected, radius, borderWidth);
+      return _buildNormalMode(
+          theme, isSelected, radius, borderWidth, rectangleColor);
     }
   }
 
-  Widget _buildEditingMode(ThemeData theme, double radius, double borderWidth) {
+  Widget _buildEditingMode(ThemeData theme, double radius, double borderWidth,
+      Color rectangleColor) {
     return Container(
       width: widget.width,
       height: widget.height,
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.2),
+        color: rectangleColor.withOpacity(0.2),
         borderRadius: BorderRadius.circular(radius),
         boxShadow: [
           BoxShadow(
@@ -107,7 +118,7 @@ class _RectangleItemState extends State<RectangleItem> {
           ),
         ],
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.6),
+          color: rectangleColor.withOpacity(0.6),
           width: borderWidth + 0.5,
         ),
       ),
@@ -120,7 +131,7 @@ class _RectangleItemState extends State<RectangleItem> {
               controller: _textController,
               focusNode: _focusNode,
               style: TextStyle(
-                color: theme.colorScheme.primary,
+                color: rectangleColor,
                 fontSize: widget.isCompact ? 14.0 : 16.0,
                 fontWeight: FontWeight.bold,
               ),
@@ -131,7 +142,7 @@ class _RectangleItemState extends State<RectangleItem> {
                 isDense: true,
                 hintText: '${_textController.text.length}/3',
                 hintStyle: TextStyle(
-                  color: theme.colorScheme.primary.withOpacity(0.5),
+                  color: rectangleColor.withOpacity(0.5),
                   fontSize: (widget.isCompact ? 14.0 : 16.0) * 0.8,
                 ),
               ),
@@ -153,8 +164,8 @@ class _RectangleItemState extends State<RectangleItem> {
     );
   }
 
-  Widget _buildNormalMode(
-      ThemeData theme, bool isSelected, double radius, double borderWidth) {
+  Widget _buildNormalMode(ThemeData theme, bool isSelected, double radius,
+      double borderWidth, Color rectangleColor) {
     return Draggable<TagData>(
       data: widget.rectangle,
       feedback: Material(
@@ -164,7 +175,7 @@ class _RectangleItemState extends State<RectangleItem> {
           width: widget.width * 1.1,
           height: widget.height * 1.1,
           decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withOpacity(0.9),
+            color: rectangleColor.withOpacity(0.9),
             borderRadius: BorderRadius.circular(radius),
           ),
           child: Center(
@@ -178,14 +189,16 @@ class _RectangleItemState extends State<RectangleItem> {
       ),
       childWhenDragging: Opacity(
         opacity: 0.5,
-        child: _buildRectangleItem(theme, isSelected, radius, borderWidth),
+        child: _buildRectangleItem(
+            theme, isSelected, radius, borderWidth, rectangleColor),
       ),
-      child: _buildRectangleItem(theme, isSelected, radius, borderWidth),
+      child: _buildRectangleItem(
+          theme, isSelected, radius, borderWidth, rectangleColor),
     );
   }
 
-  Widget _buildRectangleItem(
-      ThemeData theme, bool isSelected, double radius, double borderWidth) {
+  Widget _buildRectangleItem(ThemeData theme, bool isSelected, double radius,
+      double borderWidth, Color rectangleColor) {
     return Semantics(
       label: widget.rectangle.label,
       selected: isSelected,
@@ -198,8 +211,8 @@ class _RectangleItemState extends State<RectangleItem> {
           height: widget.height,
           decoration: BoxDecoration(
             color: isSelected
-                ? theme.colorScheme.primary.withOpacity(0.15)
-                : theme.colorScheme.primary.withOpacity(0.05),
+                ? rectangleColor.withOpacity(0.15)
+                : rectangleColor.withOpacity(0.05),
             borderRadius: BorderRadius.circular(radius),
             boxShadow: [
               BoxShadow(
@@ -210,8 +223,8 @@ class _RectangleItemState extends State<RectangleItem> {
             ],
             border: Border.all(
               color: isSelected
-                  ? theme.colorScheme.primary.withOpacity(0.5)
-                  : theme.colorScheme.primary.withOpacity(0.15),
+                  ? rectangleColor.withOpacity(0.5)
+                  : rectangleColor.withOpacity(0.15),
               width: borderWidth,
             ),
           ),
@@ -220,14 +233,12 @@ class _RectangleItemState extends State<RectangleItem> {
             child: InkWell(
               borderRadius: BorderRadius.circular(radius),
               onTap: widget.onTap,
-              splashColor: theme.colorScheme.primary.withOpacity(0.15),
-              highlightColor: theme.colorScheme.primary.withOpacity(0.1),
+              splashColor: rectangleColor.withOpacity(0.15),
+              highlightColor: rectangleColor.withOpacity(0.1),
               child: Center(
                 child: _buildSpecialText(
                   widget.rectangle.label,
-                  isSelected
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.primary.withOpacity(0.8),
+                  isSelected ? rectangleColor : rectangleColor.withOpacity(0.8),
                   widget.isCompact ? 12.0 : 14.0,
                 ),
               ),

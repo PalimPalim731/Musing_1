@@ -3,8 +3,10 @@
 import 'package:flutter/material.dart';
 import '../../models/quick_tag.dart';
 import '../../config/constants/layout.dart';
+import '../../config/theme/app_theme.dart';
+import '../../services/tag_service.dart';
 
-/// Displays a quick tag as a chip, for showing applied quick tags on notes
+/// Displays a quick tag as a chip, for showing applied quick tags on notes with category colors
 class QuickTagChip extends StatelessWidget {
   final QuickTagData quickTag;
   final VoidCallback? onRemove;
@@ -20,8 +22,13 @@ class QuickTagChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final tagColor = theme.colorScheme
-        .secondary; // Use secondary color to differentiate from regular tags
+
+    // Get category-specific color for quick tags
+    // Quick tags use light variant of current category color to differentiate from regular tags
+    final tagService = TagService();
+    final currentCategory = tagService.currentCategory;
+    final tagColor = AppTheme.getCategoryColorLight(currentCategory);
+
     final fontSize = isSmall ? 10.0 : 12.0;
     final horizontalPadding = isSmall ? 6.0 : 8.0;
     final verticalPadding = isSmall ? 4.0 : 6.0;

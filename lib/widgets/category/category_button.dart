@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 import '../../config/theme/app_theme.dart';
 
-/// Individual category button
+/// Individual category button with category-specific colors
 class CategoryButton extends StatelessWidget {
   final String label;
   final bool isSelected;
@@ -34,11 +34,14 @@ class CategoryButton extends StatelessWidget {
     final fontSize =
         AppLayout.getFontSize(context, baseSize: isCompact ? 14.0 : 16.0);
 
+    // Get category-specific color
+    final categoryColor = AppTheme.getCategoryColor(label);
+    final categoryColorLight = AppTheme.getCategoryColorLight(label);
+
     // Determine the border based on whether this category's tags are active
     final borderWidth = isActiveForTags ? 3.0 : 0.0;
     final borderColor = isActiveForTags
-        ? theme.colorScheme
-            .secondary // Use secondary color for active tag category
+        ? categoryColorLight // Use light variant for active tag category border
         : Colors.transparent;
 
     return Semantics(
@@ -49,9 +52,9 @@ class CategoryButton extends StatelessWidget {
         height: height,
         margin: margin,
         decoration: BoxDecoration(
-          color: theme.colorScheme.primary,
+          color: categoryColor, // Use category-specific color
           borderRadius: BorderRadius.circular(radius),
-          boxShadow: AppTheme.lightShadow,
+          boxShadow: AppTheme.getLightShadow(label), // Category-specific shadow
           // Add border to indicate active tag category
           border: Border.all(
             color: borderColor,
@@ -76,6 +79,7 @@ class CategoryButton extends StatelessWidget {
                     // Make text bold if this category's tags are active
                     fontWeight:
                         isActiveForTags ? FontWeight.bold : FontWeight.w500,
+                    color: Colors.white, // Keep text white for readability
                   ),
                 ),
               ),

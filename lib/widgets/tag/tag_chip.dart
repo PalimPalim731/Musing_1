@@ -3,9 +3,11 @@
 import 'package:flutter/material.dart';
 import '../../models/tag.dart';
 import '../../config/constants/layout.dart';
+import '../../config/theme/app_theme.dart';
+import '../../services/tag_service.dart';
 import '../../utils/text_utils.dart';
 
-/// Displays a tag as a chip, for showing applied tags on notes
+/// Displays a tag as a chip, for showing applied tags on notes with category-specific colors
 class TagChip extends StatelessWidget {
   final TagData tag;
   final VoidCallback? onRemove;
@@ -24,10 +26,19 @@ class TagChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Use different colors for quick-tags vs regular-tags
-    final tagColor = isQuickTag
-        ? theme.colorScheme.secondary // Secondary color for quick-tags
-        : theme.colorScheme.primary; // Primary color for regular tags
+    // Get category-specific color for this tag
+    final tagService = TagService();
+    final tagCategory = tagService.getTagCategory(tag.id);
+
+    // For quick-tags (rectangles), use secondary color to differentiate
+    final Color tagColor;
+    if (isQuickTag || tagService.isRectangleTag(tag.id)) {
+      tagColor = AppTheme.getCategoryColorLight(
+          tagCategory); // Use light variant for rectangles
+    } else {
+      tagColor = AppTheme.getCategoryColor(
+          tagCategory); // Use main color for regular tags
+    }
 
     final fontSize = isSmall ? 10.0 : 12.0;
     final horizontalPadding = isSmall ? 6.0 : 8.0;
@@ -58,7 +69,7 @@ class TagChip extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Display the tag text with special formatting for quick-tags
-                isQuickTag
+                (isQuickTag || tagService.isRectangleTag(tag.id))
                     ? _buildQuickTagText(tag.label, tagColor, fontSize)
                     : _buildRegularTagText(tag.label, tagColor, fontSize),
 

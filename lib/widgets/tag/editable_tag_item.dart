@@ -2,10 +2,12 @@
 
 import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
+import '../../config/theme/app_theme.dart';
 import '../../models/tag.dart';
+import '../../services/tag_service.dart';
 import '../../utils/text_utils.dart';
 
-/// A version of TagItem that can be edited via long press
+/// A version of TagItem that can be edited via long press with category-specific colors
 class EditableTagItem extends StatefulWidget {
   final double height;
   final VoidCallback? onTap;
@@ -85,20 +87,26 @@ class _EditableTagItemState extends State<EditableTagItem> {
         ? (widget.isCompact ? 1.2 : 1.5)
         : (widget.isCompact ? 0.8 : 1.0);
 
+    // Get category-specific color for this tag
+    final tagService = TagService();
+    final tagCategory = tagService.getTagCategory(widget.tag.id);
+    final tagColor = AppTheme.getCategoryColor(tagCategory);
+
     if (_isEditing) {
-      return _buildEditingMode(theme, radius, fontSize, borderWidth);
+      return _buildEditingMode(theme, radius, fontSize, borderWidth, tagColor);
     } else {
-      return _buildNormalMode(theme, isSelected, radius, fontSize, borderWidth);
+      return _buildNormalMode(
+          theme, isSelected, radius, fontSize, borderWidth, tagColor);
     }
   }
 
-  Widget _buildEditingMode(
-      ThemeData theme, double radius, double fontSize, double borderWidth) {
+  Widget _buildEditingMode(ThemeData theme, double radius, double fontSize,
+      double borderWidth, Color tagColor) {
     // This is a non-draggable mode just for editing
     return Container(
       height: widget.height,
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.2),
+        color: tagColor.withOpacity(0.2),
         borderRadius: BorderRadius.circular(radius),
         boxShadow: [
           BoxShadow(
@@ -108,7 +116,7 @@ class _EditableTagItemState extends State<EditableTagItem> {
           ),
         ],
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.6),
+          color: tagColor.withOpacity(0.6),
           width: borderWidth + 0.5, // Make border slightly thicker in edit mode
         ),
       ),
@@ -128,7 +136,7 @@ class _EditableTagItemState extends State<EditableTagItem> {
                   controller: _textController,
                   focusNode: _focusNode,
                   style: TextStyle(
-                    color: theme.colorScheme.primary,
+                    color: tagColor,
                     fontSize: fontSize,
                     fontWeight: FontWeight.bold,
                   ),
@@ -140,7 +148,7 @@ class _EditableTagItemState extends State<EditableTagItem> {
                     // Show character count as hint
                     hintText: '${_textController.text.length}/10',
                     hintStyle: TextStyle(
-                      color: theme.colorScheme.primary.withOpacity(0.5),
+                      color: tagColor.withOpacity(0.5),
                       fontSize: fontSize * 0.8,
                     ),
                   ),
@@ -172,7 +180,7 @@ class _EditableTagItemState extends State<EditableTagItem> {
   }
 
   Widget _buildNormalMode(ThemeData theme, bool isSelected, double radius,
-      double fontSize, double borderWidth) {
+      double fontSize, double borderWidth, Color tagColor) {
     // Wrap with Draggable widget - this is the key for drag functionality
     return Draggable<TagData>(
       // The data that will be passed to the DragTarget
@@ -184,7 +192,7 @@ class _EditableTagItemState extends State<EditableTagItem> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withOpacity(0.9),
+            color: tagColor.withOpacity(0.9),
             borderRadius: BorderRadius.circular(radius),
           ),
           child: Text(
@@ -200,16 +208,18 @@ class _EditableTagItemState extends State<EditableTagItem> {
       // Reduce the opacity of the original widget during drag
       childWhenDragging: Opacity(
         opacity: 0.5,
-        child: _buildTagItem(theme, isSelected, radius, fontSize, borderWidth),
+        child: _buildTagItem(
+            theme, isSelected, radius, fontSize, borderWidth, tagColor),
       ),
       // The actual widget displayed when not dragging
-      child: _buildTagItem(theme, isSelected, radius, fontSize, borderWidth),
+      child: _buildTagItem(
+          theme, isSelected, radius, fontSize, borderWidth, tagColor),
     );
   }
 
   // Extracted the original tag item widget to reduce code duplication
   Widget _buildTagItem(ThemeData theme, bool isSelected, double radius,
-      double fontSize, double borderWidth) {
+      double fontSize, double borderWidth, Color tagColor) {
     return Semantics(
       label: widget.tag.label,
       selected: isSelected,
@@ -221,8 +231,8 @@ class _EditableTagItemState extends State<EditableTagItem> {
           height: widget.height,
           decoration: BoxDecoration(
             color: isSelected
-                ? theme.colorScheme.primary.withOpacity(0.15)
-                : theme.colorScheme.primary.withOpacity(0.05),
+                ? tagColor.withOpacity(0.15)
+                : tagColor.withOpacity(0.05),
             borderRadius: BorderRadius.circular(radius),
             boxShadow: [
               BoxShadow(
@@ -233,8 +243,8 @@ class _EditableTagItemState extends State<EditableTagItem> {
             ],
             border: Border.all(
               color: isSelected
-                  ? theme.colorScheme.primary.withOpacity(0.5)
-                  : theme.colorScheme.primary.withOpacity(0.15),
+                  ? tagColor.withOpacity(0.5)
+                  : tagColor.withOpacity(0.15),
               width: borderWidth,
             ),
           ),
@@ -243,17 +253,15 @@ class _EditableTagItemState extends State<EditableTagItem> {
             child: InkWell(
               borderRadius: BorderRadius.circular(radius),
               onTap: widget.onTap,
-              splashColor: theme.colorScheme.primary.withOpacity(0.15),
-              highlightColor: theme.colorScheme.primary.withOpacity(0.1),
+              splashColor: tagColor.withOpacity(0.15),
+              highlightColor: tagColor.withOpacity(0.1),
               child: RotatedBox(
                 quarterTurns: 3,
                 child: Center(
                   child: Text(
                     TextUtils.truncateWithEllipsis(widget.tag.label, 10),
                     style: TextStyle(
-                      color: isSelected
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.primary.withOpacity(0.8),
+                      color: isSelected ? tagColor : tagColor.withOpacity(0.8),
                       fontSize: fontSize,
                       fontWeight:
                           isSelected ? FontWeight.bold : FontWeight.normal,

@@ -124,6 +124,38 @@ class TagService {
   // Get current category
   String get currentCategory => _currentCategory;
 
+  // **NEW: Get category for a specific tag by ID**
+  String getTagCategory(String tagId) {
+    final id = int.tryParse(tagId) ?? 0;
+
+    // Private tags: 1-14
+    if (id >= 1 && id <= 14) {
+      return 'Private';
+    }
+    // Circle tags: 15-28
+    else if (id >= 15 && id <= 28) {
+      return 'Circle';
+    }
+    // Public tags: 29-42
+    else if (id >= 29 && id <= 42) {
+      return 'Public';
+    }
+    // Rectangle tags: 101+
+    else if (id >= 101) {
+      return 'Rectangle'; // Special category for rectangles
+    }
+    // Default to current category for new tags
+    else {
+      return _currentCategory;
+    }
+  }
+
+  // **NEW: Check if a tag ID belongs to rectangles**
+  bool isRectangleTag(String tagId) {
+    final id = int.tryParse(tagId) ?? 0;
+    return id >= 101;
+  }
+
   // Initialize default tags for all categories
   void _initializeDefaultTags() {
     // Initialize Private tags
@@ -209,6 +241,18 @@ class TagService {
     } catch (e) {
       return null; // Tag not found
     }
+  }
+
+  // **NEW: Get a tag by ID from any category**
+  TagData? getTagByIdFromAnyCategory(String id) {
+    for (var categoryList in _categoryTags.values) {
+      try {
+        return categoryList.firstWhere((tag) => tag.id == id);
+      } catch (e) {
+        // Continue searching in other categories
+      }
+    }
+    return null; // Tag not found in any category
   }
 
   // Add a new tag to current category

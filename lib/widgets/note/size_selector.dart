@@ -2,8 +2,10 @@
 
 import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
+import '../../config/theme/app_theme.dart';
+import '../../services/tag_service.dart';
 
-/// Size selector widget
+/// Size selector widget with category-specific colors
 class SizeSelector extends StatelessWidget {
   final String selectedSize;
   final Function(String) onSizeSelected;
@@ -18,9 +20,16 @@ class SizeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     const sizeOptions = ['Large', 'Medium', 'Small'];
     final theme = Theme.of(context);
-    final isCompact = MediaQuery.of(context).size.width < AppLayout.tabletBreakpoint;
-    final height = isCompact ? AppLayout.selectorHeight * 0.9 : AppLayout.selectorHeight;
+    final isCompact =
+        MediaQuery.of(context).size.width < AppLayout.tabletBreakpoint;
+    final height =
+        isCompact ? AppLayout.selectorHeight * 0.9 : AppLayout.selectorHeight;
     final padding = isCompact ? AppLayout.spacingS * 0.7 : AppLayout.spacingS;
+
+    // Get category-specific color
+    final tagService = TagService();
+    final currentCategory = tagService.currentCategory;
+    final categoryColor = AppTheme.getCategoryColor(currentCategory);
 
     return Padding(
       padding: EdgeInsets.all(padding),
@@ -31,7 +40,7 @@ class SizeSelector extends StatelessWidget {
             height: height,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(height / 2), // Circular shape
-              border: Border.all(color: theme.colorScheme.primary, width: 1),
+              border: Border.all(color: categoryColor, width: 1),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -43,6 +52,7 @@ class SizeSelector extends StatelessWidget {
                     isSelected: selectedSize == sizeOptions[i],
                     onTap: () => onSizeSelected(sizeOptions[i]),
                     width: isCompact ? 75 : 85,
+                    categoryColor: categoryColor,
                   ),
                 ],
               ],
@@ -54,12 +64,13 @@ class SizeSelector extends StatelessWidget {
   }
 }
 
-/// Individual size option button
+/// Individual size option button with category-specific colors
 class SizeOption extends StatelessWidget {
   final String text;
   final bool isSelected;
   final VoidCallback onTap;
   final double width;
+  final Color categoryColor;
 
   const SizeOption({
     super.key,
@@ -67,6 +78,7 @@ class SizeOption extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     this.width = 85,
+    required this.categoryColor,
   });
 
   @override
@@ -83,14 +95,14 @@ class SizeOption extends StatelessWidget {
         child: Container(
           width: width,
           decoration: BoxDecoration(
-            color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+            color: isSelected ? categoryColor : Colors.transparent,
             borderRadius: isSelected ? BorderRadius.circular(25) : null,
           ),
           child: Center(
             child: Text(
               text,
               style: TextStyle(
-                color: isSelected ? Colors.white : theme.colorScheme.primary,
+                color: isSelected ? Colors.white : categoryColor,
                 fontWeight: FontWeight.w500,
                 fontSize: fontSize,
               ),
