@@ -100,6 +100,12 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
         _currentTagPage = newPage;
       });
     });
+
+    // Listen to tag category changes to update UI
+    _tagService.categoryStream.listen((newActiveCategory) {
+      // Update UI if needed when tag category changes
+      setState(() {});
+    });
   }
 
   @override
@@ -215,6 +221,10 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     setState(() {
       _selectedCategory = category;
     });
+
+    // Switch the tag service to this category's tag set
+    _tagService.switchCategory(category);
+    debugPrint('Switched to $category category tags');
   }
 
   // Handle tag page toggle

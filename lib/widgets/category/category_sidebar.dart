@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 import '../../services/category_service.dart';
+import '../../services/tag_service.dart';
 import 'category_button.dart';
 
 /// Left sidebar widget displaying category options
@@ -26,17 +27,27 @@ class CategorySidebar extends StatefulWidget {
 
 class _CategorySidebarState extends State<CategorySidebar> {
   final CategoryService _categoryService = CategoryService();
+  final TagService _tagService = TagService();
   late List<String> _categories;
+  late String _activeTagCategory;
 
   @override
   void initState() {
     super.initState();
     _categories = _categoryService.getAllCategories();
+    _activeTagCategory = _tagService.currentCategory;
 
     // Listen to category changes
     _categoryService.categoriesStream.listen((updatedCategories) {
       setState(() {
         _categories = updatedCategories;
+      });
+    });
+
+    // Listen to tag category changes
+    _tagService.categoryStream.listen((newActiveCategory) {
+      setState(() {
+        _activeTagCategory = newActiveCategory;
       });
     });
   }
@@ -71,6 +82,8 @@ class _CategorySidebarState extends State<CategorySidebar> {
                   CategoryButton(
                     label: _categories[i],
                     isSelected: widget.selectedCategory == _categories[i],
+                    isActiveForTags:
+                        _activeTagCategory == _categories[i], // New parameter
                     onTap: () => widget.onCategorySelected(_categories[i]),
                     height: buttonHeight,
                     isCompact: widget.isCompact,
