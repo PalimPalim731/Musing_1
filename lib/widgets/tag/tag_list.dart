@@ -43,7 +43,7 @@ class TagList extends StatelessWidget {
         if (quickTags.isNotEmpty) ...[
           Wrap(
             spacing: 4.0,
-            runSpacing: 4.0,
+            runSpacing: 2.0, // Reduced from 4.0 to 2.0
             children: quickTags
                 .map((tag) => TagChip(
                       tag: tag,
@@ -56,14 +56,16 @@ class TagList extends StatelessWidget {
           ),
 
           // Add spacing between quick-tags and regular-tags if both exist
-          if (regularTags.isNotEmpty) SizedBox(height: isSmall ? 6.0 : 8.0),
+          if (regularTags.isNotEmpty)
+            SizedBox(
+                height: isSmall ? 1.5 : 2.0), // Reduced from 6.0/8.0 to 3.0/4.0
         ],
 
         // Regular-tags row(s) (sidebar tags)
         if (regularTags.isNotEmpty)
           Wrap(
             spacing: 4.0,
-            runSpacing: 4.0,
+            runSpacing: (1.0), // Reduced from 4.0 to 2.0
             children: regularTags
                 .map((tag) => TagChip(
                       tag: tag,
