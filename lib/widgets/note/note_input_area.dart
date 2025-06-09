@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 import '../../models/tag.dart';
 import '../tag/tag_list.dart';
+import '../tag/tag_chip.dart'; // Import for TagRemovalData
 import 'action_button.dart';
 
 /// Note input area with text field and action buttons
-class NoteInputArea extends StatelessWidget {
+class NoteInputArea extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode? focusNode;
   final List<TagData> appliedQuickTags; // Rectangle-based tags (3 chars)
@@ -57,6 +58,14 @@ class NoteInputArea extends StatelessWidget {
         appliedRegularTags = appliedTags;
 
   @override
+  State<NoteInputArea> createState() => _NoteInputAreaState();
+}
+
+class _NoteInputAreaState extends State<NoteInputArea> {
+  // Key to get the bounds of the note input area for drag detection
+  final GlobalKey _noteInputKey = GlobalKey();
+
+  @override
   Widget build(BuildContext context) {
     final bool isCompact =
         MediaQuery.of(context).size.width < AppLayout.tabletBreakpoint;
@@ -68,30 +77,46 @@ class NoteInputArea extends StatelessWidget {
         ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
         : const EdgeInsets.symmetric(horizontal: 16, vertical: 12);
 
-    // Create a DragTarget for tag dropping
-    return DragTarget<TagData>(
-      onAccept: (TagData tag) {
-        if (onTagAdded != null) {
-          onTagAdded!(tag);
+    // Create a combined DragTarget for both tag addition and tag removal
+    return DragTarget<Object>(
+      onAccept: (Object data) {
+        // Handle tag addition (existing functionality)
+        if (data is TagData && widget.onTagAdded != null) {
+          widget.onTagAdded!(data);
         }
       },
-      // Change visual feedback when tag is being dragged over
-      onWillAccept: (TagData? tag) {
-        if (tag == null) return false;
+      onWillAccept: (Object? data) {
+        // Accept TagData for addition
+        if (data is TagData) {
+          // Check if tag is already applied (existing logic)
+          final alreadyAppliedAsQuick =
+              widget.appliedQuickTags.any((t) => t.id == data.id);
+          final alreadyAppliedAsRegular =
+              widget.appliedRegularTags.any((t) => t.id == data.id);
 
-        // Check if tag is already applied (in either quick or regular tags)
-        final alreadyAppliedAsQuick =
-            appliedQuickTags.any((t) => t.id == tag.id);
-        final alreadyAppliedAsRegular =
-            appliedRegularTags.any((t) => t.id == tag.id);
-
-        return !alreadyAppliedAsQuick && !alreadyAppliedAsRegular;
+          return !alreadyAppliedAsQuick && !alreadyAppliedAsRegular;
+        }
+        // Accept TagRemovalData for position tracking
+        if (data is TagRemovalData) {
+          return true;
+        }
+        return false;
+      },
+      onLeave: (Object? data) {
+        // Handle when a tag for removal leaves the area
+        if (data is TagRemovalData) {
+          // Tag has been dragged outside - remove it
+          debugPrint('Tag dragged outside bounds: ${data.tag.label}');
+          data.onRemove();
+        }
       },
       builder: (context, candidateItems, rejectedItems) {
-        // Add a subtle highlight effect when tag is hovering
-        final bool isHighlighted = candidateItems.isNotEmpty;
+        // Add a subtle highlight effect when tag is hovering for addition
+        final bool isHighlighted =
+            candidateItems.any((item) => item is TagData);
 
         return Container(
+          key: _noteInputKey, // Key for bounds detection
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
             color: theme.brightness == Brightness.light
@@ -125,9 +150,9 @@ class NoteInputArea extends StatelessWidget {
                 height: actionBarHeight,
                 padding: padding,
                 iconSize: iconSize,
-                onDeletePressed: onDelete,
-                onUndoPressed: onUndo,
-                onFormatPressed: onFormat,
+                onDeletePressed: widget.onDelete,
+                onUndoPressed: widget.onUndo,
+                onFormatPressed: widget.onFormat,
               ),
 
               // Divider after top action bar
@@ -143,8 +168,8 @@ class NoteInputArea extends StatelessWidget {
                   padding: EdgeInsets.only(
                       top: isCompact ? 5.0 : AppLayout.spacingS),
                   child: TextField(
-                    controller: controller,
-                    focusNode: focusNode,
+                    controller: widget.controller,
+                    focusNode: widget.focusNode,
                     decoration: InputDecoration(
                       contentPadding: contentPadding,
                       hintText: 'Input text',
@@ -165,16 +190,18 @@ class NoteInputArea extends StatelessWidget {
               ),
 
               // Display applied tags at the bottom - separated by type
-              if (appliedQuickTags.isNotEmpty || appliedRegularTags.isNotEmpty)
+              if (widget.appliedQuickTags.isNotEmpty ||
+                  widget.appliedRegularTags.isNotEmpty)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.only(
                       left: 12.0, right: 12.0, bottom: 8.0),
                   child: TagList(
-                    quickTags: appliedQuickTags,
-                    regularTags: appliedRegularTags,
-                    onRemoveTag: onTagRemoved,
+                    quickTags: widget.appliedQuickTags,
+                    regularTags: widget.appliedRegularTags,
+                    onRemoveTag: widget.onTagRemoved,
                     isSmall: true,
+                    isDraggable: true, // Enable drag-to-remove for applied tags
                   ),
                 ),
 
@@ -190,9 +217,9 @@ class NoteInputArea extends StatelessWidget {
                 height: actionBarHeight,
                 padding: padding,
                 iconSize: iconSize,
-                onCameraPressed: onCamera,
-                onMicPressed: onMic,
-                onLinkPressed: onLink,
+                onCameraPressed: widget.onCamera,
+                onMicPressed: widget.onMic,
+                onLinkPressed: widget.onLink,
               ),
             ],
           ),

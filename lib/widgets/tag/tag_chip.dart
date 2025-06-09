@@ -11,6 +11,7 @@ class TagChip extends StatelessWidget {
   final VoidCallback? onRemove;
   final bool isSmall;
   final bool isQuickTag; // New parameter to distinguish quick-tags
+  final bool isDraggable; // New parameter to control drag behavior
 
   const TagChip({
     super.key,
@@ -18,6 +19,7 @@ class TagChip extends StatelessWidget {
     this.onRemove,
     this.isSmall = false,
     this.isQuickTag = false, // Default to regular tag
+    this.isDraggable = true, // Default to draggable when applied to note
   });
 
   @override
@@ -34,6 +36,93 @@ class TagChip extends StatelessWidget {
     final verticalPadding = isSmall ? 4.0 : 6.0;
     final iconSize = isSmall ? 14.0 : 16.0;
 
+    // If this tag is applied to a note and draggable, wrap it in Draggable
+    if (onRemove != null && isDraggable) {
+      return _buildDraggableTagChip(context, theme, tagColor, fontSize,
+          horizontalPadding, verticalPadding, iconSize);
+    } else {
+      return _buildStaticTagChip(context, theme, tagColor, fontSize,
+          horizontalPadding, verticalPadding, iconSize);
+    }
+  }
+
+  Widget _buildDraggableTagChip(
+    BuildContext context,
+    ThemeData theme,
+    Color tagColor,
+    double fontSize,
+    double horizontalPadding,
+    double verticalPadding,
+    double iconSize,
+  ) {
+    return Draggable<TagRemovalData>(
+      // Pass tag removal data to identify which tag is being dragged for removal
+      data: TagRemovalData(tag: tag, onRemove: onRemove!),
+
+      // What appears during drag - slightly larger and more prominent
+      feedback: Material(
+        elevation: 8.0,
+        borderRadius: BorderRadius.circular(18.0),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding + 2,
+            vertical: verticalPadding + 1,
+          ),
+          decoration: BoxDecoration(
+            color: tagColor.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(18.0),
+            border: Border.all(
+              color: tagColor.withOpacity(0.5),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Display the tag text with special formatting for quick-tags
+              isQuickTag
+                  ? _buildQuickTagText(tag.label, Colors.white, fontSize + 1)
+                  : _buildRegularTagText(tag.label, Colors.white, fontSize + 1),
+            ],
+          ),
+        ),
+      ),
+
+      // What remains in place during drag - reduced opacity
+      childWhenDragging: Opacity(
+        opacity: 0.3,
+        child: _buildTagChipContent(context, theme, tagColor, fontSize,
+            horizontalPadding, verticalPadding, iconSize),
+      ),
+
+      // Normal appearance when not dragging
+      child: _buildTagChipContent(context, theme, tagColor, fontSize,
+          horizontalPadding, verticalPadding, iconSize),
+    );
+  }
+
+  Widget _buildStaticTagChip(
+    BuildContext context,
+    ThemeData theme,
+    Color tagColor,
+    double fontSize,
+    double horizontalPadding,
+    double verticalPadding,
+    double iconSize,
+  ) {
+    return _buildTagChipContent(context, theme, tagColor, fontSize,
+        horizontalPadding, verticalPadding, iconSize);
+  }
+
+  Widget _buildTagChipContent(
+    BuildContext context,
+    ThemeData theme,
+    Color tagColor,
+    double fontSize,
+    double horizontalPadding,
+    double verticalPadding,
+    double iconSize,
+  ) {
     return Container(
       margin: const EdgeInsets.only(right: 6.0, bottom: 6.0),
       child: Material(
@@ -156,4 +245,15 @@ class TagChip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Data class for tag removal during drag operations
+class TagRemovalData extends Object {
+  final TagData tag;
+  final VoidCallback onRemove;
+
+  const TagRemovalData({
+    required this.tag,
+    required this.onRemove,
+  });
 }
