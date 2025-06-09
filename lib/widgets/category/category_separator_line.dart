@@ -33,7 +33,7 @@ class CategorySeparatorLine extends StatelessWidget {
           return Container(
             padding: EdgeInsets.only(top: topOffset, bottom: bottomOffset),
             child: Align(
-              alignment: Alignment.centerRight,
+              alignment: Alignment(0.7, 0),
               child: Container(
                 width: 2.5, // Distinctive thickness
                 height: lineHeight,
