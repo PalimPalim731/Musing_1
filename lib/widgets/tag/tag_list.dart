@@ -10,7 +10,7 @@ class TagList extends StatelessWidget {
   final List<TagData> regularTags; // Sidebar tags (longer names)
   final Function(TagData)? onRemoveTag;
   final bool isSmall;
-  final bool isDraggable; // New parameter to control drag behavior
+  final bool isDraggable; // Parameter to control drag behavior
 
   const TagList({
     super.key,
@@ -50,8 +50,9 @@ class TagList extends StatelessWidget {
             children: quickTags
                 .map((tag) => TagChip(
                       tag: tag,
-                      onRemove:
-                          onRemoveTag != null ? () => onRemoveTag!(tag) : null,
+                      onRemove: onRemoveTag != null
+                          ? () => onRemoveTag!(tag)
+                          : null, // Internal callback for drag functionality
                       isSmall: isSmall,
                       isQuickTag: true, // Special styling for quick-tags
                       isDraggable: isDraggable, // Pass drag control
@@ -71,8 +72,9 @@ class TagList extends StatelessWidget {
             children: regularTags
                 .map((tag) => TagChip(
                       tag: tag,
-                      onRemove:
-                          onRemoveTag != null ? () => onRemoveTag!(tag) : null,
+                      onRemove: onRemoveTag != null
+                          ? () => onRemoveTag!(tag)
+                          : null, // Internal callback for drag functionality
                       isSmall: isSmall,
                       isQuickTag: false, // Regular styling
                       isDraggable: isDraggable, // Pass drag control

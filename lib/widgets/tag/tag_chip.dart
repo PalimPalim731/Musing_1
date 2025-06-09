@@ -8,10 +8,10 @@ import '../../utils/text_utils.dart';
 /// Displays a tag as a chip, for showing applied tags on notes
 class TagChip extends StatelessWidget {
   final TagData tag;
-  final VoidCallback? onRemove;
+  final VoidCallback? onRemove; // Keep for internal drag functionality
   final bool isSmall;
-  final bool isQuickTag; // New parameter to distinguish quick-tags
-  final bool isDraggable; // New parameter to control drag behavior
+  final bool isQuickTag; // Parameter to distinguish quick-tags
+  final bool isDraggable; // Parameter to control drag behavior
 
   const TagChip({
     super.key,
@@ -32,17 +32,17 @@ class TagChip extends StatelessWidget {
         : theme.colorScheme.primary; // Primary color for regular tags
 
     final fontSize = isSmall ? 10.0 : 12.0;
-    final horizontalPadding = isSmall ? 6.0 : 8.0;
+    final horizontalPadding =
+        isSmall ? 8.0 : 10.0; // Slightly more padding without 'x'
     final verticalPadding = isSmall ? 4.0 : 6.0;
-    final iconSize = isSmall ? 14.0 : 16.0;
 
     // If this tag is applied to a note and draggable, wrap it in Draggable
     if (onRemove != null && isDraggable) {
       return _buildDraggableTagChip(context, theme, tagColor, fontSize,
-          horizontalPadding, verticalPadding, iconSize);
+          horizontalPadding, verticalPadding);
     } else {
       return _buildStaticTagChip(context, theme, tagColor, fontSize,
-          horizontalPadding, verticalPadding, iconSize);
+          horizontalPadding, verticalPadding);
     }
   }
 
@@ -53,7 +53,6 @@ class TagChip extends StatelessWidget {
     double fontSize,
     double horizontalPadding,
     double verticalPadding,
-    double iconSize,
   ) {
     return Draggable<TagRemovalData>(
       // Pass tag removal data to identify which tag is being dragged for removal
@@ -76,15 +75,9 @@ class TagChip extends StatelessWidget {
               width: 1.5,
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Display the tag text with special formatting for quick-tags
-              isQuickTag
-                  ? _buildQuickTagText(tag.label, Colors.white, fontSize + 1)
-                  : _buildRegularTagText(tag.label, Colors.white, fontSize + 1),
-            ],
-          ),
+          child: isQuickTag
+              ? _buildQuickTagText(tag.label, Colors.white, fontSize + 1)
+              : _buildRegularTagText(tag.label, Colors.white, fontSize + 1),
         ),
       ),
 
@@ -92,12 +85,12 @@ class TagChip extends StatelessWidget {
       childWhenDragging: Opacity(
         opacity: 0.3,
         child: _buildTagChipContent(context, theme, tagColor, fontSize,
-            horizontalPadding, verticalPadding, iconSize),
+            horizontalPadding, verticalPadding),
       ),
 
       // Normal appearance when not dragging
       child: _buildTagChipContent(context, theme, tagColor, fontSize,
-          horizontalPadding, verticalPadding, iconSize),
+          horizontalPadding, verticalPadding),
     );
   }
 
@@ -108,10 +101,9 @@ class TagChip extends StatelessWidget {
     double fontSize,
     double horizontalPadding,
     double verticalPadding,
-    double iconSize,
   ) {
-    return _buildTagChipContent(context, theme, tagColor, fontSize,
-        horizontalPadding, verticalPadding, iconSize);
+    return _buildTagChipContent(
+        context, theme, tagColor, fontSize, horizontalPadding, verticalPadding);
   }
 
   Widget _buildTagChipContent(
@@ -121,50 +113,27 @@ class TagChip extends StatelessWidget {
     double fontSize,
     double horizontalPadding,
     double verticalPadding,
-    double iconSize,
   ) {
     return Container(
       margin: const EdgeInsets.only(right: 6.0, bottom: 6.0),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16.0),
-          onTap: onRemove,
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: horizontalPadding,
-              vertical: verticalPadding,
-            ),
-            decoration: BoxDecoration(
-              color: tagColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(16.0),
-              border: Border.all(
-                color: tagColor.withOpacity(0.3),
-                width: 1.0,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Display the tag text with special formatting for quick-tags
-                isQuickTag
-                    ? _buildQuickTagText(tag.label, tagColor, fontSize)
-                    : _buildRegularTagText(tag.label, tagColor, fontSize),
-
-                if (onRemove != null) ...[
-                  const SizedBox(width: 2),
-                  GestureDetector(
-                    onTap: onRemove,
-                    child: Icon(
-                      Icons.close,
-                      size: iconSize,
-                      color: tagColor.withOpacity(0.6),
-                    ),
-                  ),
-                ],
-              ],
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
+          ),
+          decoration: BoxDecoration(
+            color: tagColor.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(16.0),
+            border: Border.all(
+              color: tagColor.withOpacity(0.3),
+              width: 1.0,
             ),
           ),
+          child: isQuickTag
+              ? _buildQuickTagText(tag.label, tagColor, fontSize)
+              : _buildRegularTagText(tag.label, tagColor, fontSize),
         ),
       ),
     );
