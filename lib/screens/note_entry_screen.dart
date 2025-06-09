@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../config/constants/layout.dart';
 import '../widgets/category/category_sidebar.dart';
+import '../widgets/category/category_separator_line.dart';
 import '../widgets/note/note_content.dart';
 import '../widgets/tag/tag_sidebar.dart';
 import '../widgets/bottom_bar/bottom_action_bar.dart';
@@ -148,8 +149,12 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
                             isCompact: isCompact,
                           ),
 
-                          // Spacing between sidebar and main content
-                          SizedBox(width: spacing),
+                          // Visual separator line between category sidebar and note content
+                          CategorySeparatorLine(
+                            spacing: spacing,
+                            maxHeight: constraints.maxHeight,
+                            isCompact: isCompact,
+                          ),
 
                           // Main note content area with callbacks for actions
                           Expanded(
