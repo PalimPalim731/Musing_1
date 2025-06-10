@@ -10,6 +10,7 @@ import '../rectangle/rectangle_bar.dart';
 class NoteContent extends StatelessWidget {
   final TextEditingController noteController;
   final FocusNode? focusNode;
+  final String selectedCategory; // Add selected category parameter
   final List<TagData> appliedQuickTags; // Rectangle-based tags (3 chars)
   final List<TagData> appliedRegularTags; // Sidebar tags (longer names)
   final Function(TagData)? onTagAdded;
@@ -27,6 +28,7 @@ class NoteContent extends StatelessWidget {
     super.key,
     required this.noteController,
     this.focusNode,
+    required this.selectedCategory, // Required parameter
     this.appliedQuickTags = const [],
     this.appliedRegularTags = const [],
     this.onTagAdded,
@@ -44,6 +46,7 @@ class NoteContent extends StatelessWidget {
     super.key,
     required this.noteController,
     this.focusNode,
+    this.selectedCategory = 'Private', // Default to Private
     List<TagData> appliedTags = const [],
     this.onTagAdded,
     this.onTagRemoved,
@@ -66,6 +69,7 @@ class NoteContent extends StatelessWidget {
         // Rectangle bar with 7 draggable rectangles (quick-tags)
         RectangleBar(
           isCompact: isCompact,
+          selectedCategory: selectedCategory, // Pass the selected category
           onRectangleSelected: (rectangle) {
             // When a rectangle is tapped, treat it as a quick-tag being added
             onTagAdded?.call(rectangle);

@@ -5,15 +5,18 @@ import '../../config/constants/layout.dart';
 import '../../models/tag.dart';
 import '../../services/rectangle_service.dart';
 import 'rectangle_item.dart';
+import 'puzzle_piece_item.dart'; // Import the new puzzle piece widget
 
 /// Bar containing 7 rectangles positioned above the note area
 class RectangleBar extends StatefulWidget {
   final bool isCompact;
+  final String selectedCategory; // Add selected category parameter
   final Function(TagData)? onRectangleSelected;
 
   const RectangleBar({
     super.key,
     this.isCompact = false,
+    required this.selectedCategory, // Required parameter
     this.onRectangleSelected,
   });
 
@@ -52,39 +55,72 @@ class _RectangleBarState extends State<RectangleBar> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // Calculate rectangle dimensions
-          final totalSpacing = spacing * (_rectangles.length - 1);
-          final availableWidth = constraints.maxWidth - totalSpacing;
-          final rectangleWidth = availableWidth / _rectangles.length;
-          final rectangleHeight = constraints.maxHeight - (spacing * 2);
-
-          // Ensure height > width (portrait orientation)
-          final adjustedWidth = rectangleHeight > rectangleWidth
-              ? rectangleWidth
-              : rectangleHeight * 0.7; // Make width 70% of height if needed
-
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(_rectangles.length * 2 - 1, (index) {
-              // Even indices are rectangles, odd indices are spacers
-              if (index.isEven) {
-                final rectangleIndex = index ~/ 2;
-                return RectangleItem(
-                  width: adjustedWidth,
-                  height: rectangleHeight,
-                  rectangle: _rectangles[rectangleIndex],
-                  onTap: () => _handleRectangleTap(_rectangles[rectangleIndex]),
-                  onRename: (newLabel) => _handleRectangleRename(
-                      _rectangles[rectangleIndex], newLabel),
-                  isCompact: widget.isCompact,
-                );
-              } else {
-                return SizedBox(width: spacing);
-              }
-            }),
-          );
+          if (widget.selectedCategory == 'Circle') {
+            // Puzzle piece design for Circle category
+            return _buildPuzzlePieceBar(constraints, spacing);
+          } else {
+            // Default rectangle design for Private and Public categories
+            return _buildDefaultRectangleBar(constraints, spacing);
+          }
         },
       ),
+    );
+  }
+
+  Widget _buildDefaultRectangleBar(BoxConstraints constraints, double spacing) {
+    // Calculate rectangle dimensions
+    final totalSpacing = spacing * (_rectangles.length - 1);
+    final availableWidth = constraints.maxWidth - totalSpacing;
+    final rectangleWidth = availableWidth / _rectangles.length;
+    final rectangleHeight = constraints.maxHeight - (spacing * 2);
+
+    // Ensure height > width (portrait orientation)
+    final adjustedWidth = rectangleHeight > rectangleWidth
+        ? rectangleWidth
+        : rectangleHeight * 0.7; // Make width 70% of height if needed
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: List.generate(_rectangles.length * 2 - 1, (index) {
+        // Even indices are rectangles, odd indices are spacers
+        if (index.isEven) {
+          final rectangleIndex = index ~/ 2;
+          return RectangleItem(
+            width: adjustedWidth,
+            height: rectangleHeight,
+            rectangle: _rectangles[rectangleIndex],
+            onTap: () => _handleRectangleTap(_rectangles[rectangleIndex]),
+            onRename: (newLabel) =>
+                _handleRectangleRename(_rectangles[rectangleIndex], newLabel),
+            isCompact: widget.isCompact,
+          );
+        } else {
+          return SizedBox(width: spacing);
+        }
+      }),
+    );
+  }
+
+  Widget _buildPuzzlePieceBar(BoxConstraints constraints, double spacing) {
+    // For puzzle pieces, we don't want spacing between them
+    final availableWidth = constraints.maxWidth;
+    final puzzlePieceWidth = availableWidth / _rectangles.length;
+    final puzzlePieceHeight = constraints.maxHeight - (spacing * 2);
+
+    return Row(
+      children: List.generate(_rectangles.length, (index) {
+        return PuzzlePieceItem(
+          width: puzzlePieceWidth,
+          height: puzzlePieceHeight,
+          rectangle: _rectangles[index],
+          pieceIndex: index, // Pass the index to determine which type of piece
+          totalPieces: _rectangles.length,
+          onTap: () => _handleRectangleTap(_rectangles[index]),
+          onRename: (newLabel) =>
+              _handleRectangleRename(_rectangles[index], newLabel),
+          isCompact: widget.isCompact,
+        );
+      }),
     );
   }
 
