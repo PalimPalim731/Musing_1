@@ -162,8 +162,6 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
                             child: NoteContent(
                               noteController: _noteController,
                               focusNode: _noteFocusNode,
-                              selectedCategory:
-                                  _selectedCategory, // Pass the selected category
                               appliedQuickTags: _appliedQuickTags,
                               appliedRegularTags: _appliedRegularTags,
                               onTagAdded: _handleTagAdded,
