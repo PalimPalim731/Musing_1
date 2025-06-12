@@ -9,11 +9,13 @@ import 'rectangle_item.dart';
 /// Bar containing 7 rectangles positioned above the note area
 class RectangleBar extends StatefulWidget {
   final bool isCompact;
+  final String selectedCategory; // Add category parameter
   final Function(TagData)? onRectangleSelected;
 
   const RectangleBar({
     super.key,
     this.isCompact = false,
+    this.selectedCategory = 'Private', // Default to Private
     this.onRectangleSelected,
   });
 
@@ -43,6 +45,7 @@ class _RectangleBarState extends State<RectangleBar> {
     // Calculate dimensions
     final availableHeight = AppLayout.selectorHeight + (AppLayout.spacingS * 2);
     final spacing = widget.isCompact ? AppLayout.spacingXS : AppLayout.spacingS;
+    final isCircleCategory = widget.selectedCategory == 'Circle';
 
     return Container(
       height: availableHeight,
@@ -53,38 +56,114 @@ class _RectangleBarState extends State<RectangleBar> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           // Calculate rectangle dimensions
-          final totalSpacing = spacing * (_rectangles.length - 1);
-          final availableWidth = constraints.maxWidth - totalSpacing;
-          final rectangleWidth = availableWidth / _rectangles.length;
           final rectangleHeight = constraints.maxHeight - (spacing * 2);
 
-          // Ensure height > width (portrait orientation)
-          final adjustedWidth = rectangleHeight > rectangleWidth
-              ? rectangleWidth
-              : rectangleHeight * 0.7; // Make width 70% of height if needed
-
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(_rectangles.length * 2 - 1, (index) {
-              // Even indices are rectangles, odd indices are spacers
-              if (index.isEven) {
-                final rectangleIndex = index ~/ 2;
-                return RectangleItem(
-                  width: adjustedWidth,
-                  height: rectangleHeight,
-                  rectangle: _rectangles[rectangleIndex],
-                  onTap: () => _handleRectangleTap(_rectangles[rectangleIndex]),
-                  onRename: (newLabel) => _handleRectangleRename(
-                      _rectangles[rectangleIndex], newLabel),
-                  isCompact: widget.isCompact,
-                );
-              } else {
-                return SizedBox(width: spacing);
-              }
-            }),
-          );
+          if (isCircleCategory) {
+            // Circle category: joined rectangles with no spacing
+            return _buildJoinedRectangles(
+                context, constraints, rectangleHeight);
+          } else {
+            // Private/Public category: separated rectangles with spacing
+            return _buildSeparatedRectangles(
+                constraints, rectangleHeight, spacing);
+          }
         },
       ),
+    );
+  }
+
+  Widget _buildJoinedRectangles(BuildContext context,
+      BoxConstraints constraints, double rectangleHeight) {
+    final theme = Theme.of(context);
+
+    // For joined rectangles, use all available width
+    final totalWidth = constraints.maxWidth;
+    final rectangleWidth = totalWidth / _rectangles.length;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppLayout.buttonRadius),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppLayout.buttonRadius),
+        child: Row(
+          children: List.generate(_rectangles.length, (index) {
+            final rectangle = _rectangles[index];
+            final isFirst = index == 0;
+            final isLast = index == _rectangles.length - 1;
+
+            return Container(
+              width: rectangleWidth,
+              height: rectangleHeight,
+              decoration: BoxDecoration(
+                // Add divider lines between rectangles
+                border: Border(
+                  right: isLast
+                      ? BorderSide.none
+                      : BorderSide(
+                          color: theme.colorScheme.primary.withOpacity(0.3),
+                          width: 1.5,
+                        ),
+                ),
+              ),
+              child: RectangleItem(
+                width: rectangleWidth,
+                height: rectangleHeight,
+                rectangle: rectangle,
+                onTap: () => _handleRectangleTap(rectangle),
+                onRename: (newLabel) =>
+                    _handleRectangleRename(rectangle, newLabel),
+                isCompact: widget.isCompact,
+                isJoined: true, // New parameter to indicate joined style
+                isFirst: isFirst,
+                isLast: isLast,
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSeparatedRectangles(
+      BoxConstraints constraints, double rectangleHeight, double spacing) {
+    // Calculate rectangle dimensions for separated layout
+    final totalSpacing = spacing * (_rectangles.length - 1);
+    final availableWidth = constraints.maxWidth - totalSpacing;
+    final rectangleWidth = availableWidth / _rectangles.length;
+
+    // Ensure height > width (portrait orientation)
+    final adjustedWidth = rectangleHeight > rectangleWidth
+        ? rectangleWidth
+        : rectangleHeight * 0.7; // Make width 70% of height if needed
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: List.generate(_rectangles.length * 2 - 1, (index) {
+        // Even indices are rectangles, odd indices are spacers
+        if (index.isEven) {
+          final rectangleIndex = index ~/ 2;
+          return RectangleItem(
+            width: adjustedWidth,
+            height: rectangleHeight,
+            rectangle: _rectangles[rectangleIndex],
+            onTap: () => _handleRectangleTap(_rectangles[rectangleIndex]),
+            onRename: (newLabel) =>
+                _handleRectangleRename(_rectangles[rectangleIndex], newLabel),
+            isCompact: widget.isCompact,
+            isJoined: false, // Separated style
+          );
+        } else {
+          return SizedBox(width: spacing);
+        }
+      }),
     );
   }
 

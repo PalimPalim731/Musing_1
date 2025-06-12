@@ -14,6 +14,7 @@ class NoteContent extends StatelessWidget {
   final List<TagData> appliedRegularTags; // Sidebar tags (longer names)
   final Function(TagData)? onTagAdded;
   final Function(TagData)? onTagRemoved;
+  final String selectedCategory; // Add category parameter
 
   // Action callbacks
   final VoidCallback? onDelete;
@@ -31,6 +32,7 @@ class NoteContent extends StatelessWidget {
     this.appliedRegularTags = const [],
     this.onTagAdded,
     this.onTagRemoved,
+    required this.selectedCategory, // Add required category parameter
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -47,6 +49,7 @@ class NoteContent extends StatelessWidget {
     List<TagData> appliedTags = const [],
     this.onTagAdded,
     this.onTagRemoved,
+    this.selectedCategory = 'Private', // Default category for legacy
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -66,6 +69,7 @@ class NoteContent extends StatelessWidget {
         // Rectangle bar with 7 draggable rectangles (quick-tags)
         RectangleBar(
           isCompact: isCompact,
+          selectedCategory: selectedCategory, // Pass the selected category
           onRectangleSelected: (rectangle) {
             // When a rectangle is tapped, treat it as a quick-tag being added
             onTagAdded?.call(rectangle);

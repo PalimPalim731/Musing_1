@@ -164,6 +164,8 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
                               focusNode: _noteFocusNode,
                               appliedQuickTags: _appliedQuickTags,
                               appliedRegularTags: _appliedRegularTags,
+                              selectedCategory:
+                                  _selectedCategory, // Pass the selected category
                               onTagAdded: _handleTagAdded,
                               onTagRemoved: _handleTagRemoved,
                               onDelete: _handleDeleteNote,

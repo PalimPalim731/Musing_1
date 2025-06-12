@@ -12,6 +12,9 @@ class RectangleItem extends StatefulWidget {
   final Function(String) onRename;
   final TagData rectangle;
   final bool isCompact;
+  final bool isJoined; // New parameter for joined style (Circle category)
+  final bool isFirst; // New parameter to indicate first item in joined layout
+  final bool isLast; // New parameter to indicate last item in joined layout
 
   const RectangleItem({
     super.key,
@@ -21,6 +24,9 @@ class RectangleItem extends StatefulWidget {
     required this.onRename,
     required this.rectangle,
     this.isCompact = false,
+    this.isJoined = false, // Default to separated style
+    this.isFirst = false,
+    this.isLast = false,
   });
 
   @override
@@ -78,9 +84,43 @@ class _RectangleItemState extends State<RectangleItem> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isSelected = widget.rectangle.isSelected;
-    final radius = widget.isCompact
-        ? AppLayout.buttonRadius * 0.8
-        : AppLayout.buttonRadius;
+
+    // For joined style, only first and last items have rounded corners
+    BorderRadius getRadius() {
+      if (!widget.isJoined) {
+        // Normal separated style - all corners rounded
+        return BorderRadius.circular(widget.isCompact
+            ? AppLayout.buttonRadius * 0.8
+            : AppLayout.buttonRadius);
+      } else {
+        // Joined style - selective corner rounding
+        final radius = widget.isCompact
+            ? AppLayout.buttonRadius * 0.8
+            : AppLayout.buttonRadius;
+
+        if (widget.isFirst && widget.isLast) {
+          // Single item (shouldn't happen with 7 items, but for safety)
+          return BorderRadius.circular(radius);
+        } else if (widget.isFirst) {
+          // First item - left corners rounded
+          return BorderRadius.only(
+            topLeft: Radius.circular(radius),
+            bottomLeft: Radius.circular(radius),
+          );
+        } else if (widget.isLast) {
+          // Last item - right corners rounded
+          return BorderRadius.only(
+            topRight: Radius.circular(radius),
+            bottomRight: Radius.circular(radius),
+          );
+        } else {
+          // Middle items - no rounded corners
+          return BorderRadius.zero;
+        }
+      }
+    }
+
+    final radius = getRadius();
     final borderWidth = isSelected
         ? (widget.isCompact ? 1.5 : 2.0)
         : (widget.isCompact ? 1.0 : 1.2);
@@ -92,13 +132,14 @@ class _RectangleItemState extends State<RectangleItem> {
     }
   }
 
-  Widget _buildEditingMode(ThemeData theme, double radius, double borderWidth) {
+  Widget _buildEditingMode(
+      ThemeData theme, BorderRadius radius, double borderWidth) {
     return Container(
       width: widget.width,
       height: widget.height,
       decoration: BoxDecoration(
         color: theme.colorScheme.primary.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: radius,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -113,6 +154,7 @@ class _RectangleItemState extends State<RectangleItem> {
       ),
       child: Material(
         color: Colors.transparent,
+        borderRadius: radius,
         child: Padding(
           padding: const EdgeInsets.all(4.0),
           child: Center(
@@ -153,19 +195,19 @@ class _RectangleItemState extends State<RectangleItem> {
     );
   }
 
-  Widget _buildNormalMode(
-      ThemeData theme, bool isSelected, double radius, double borderWidth) {
+  Widget _buildNormalMode(ThemeData theme, bool isSelected, BorderRadius radius,
+      double borderWidth) {
     return Draggable<TagData>(
       data: widget.rectangle,
       feedback: Material(
         elevation: 4.0,
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: radius,
         child: Container(
           width: widget.width * 1.1,
           height: widget.height * 1.1,
           decoration: BoxDecoration(
             color: theme.colorScheme.primary.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(radius),
+            borderRadius: radius,
           ),
           child: Center(
             child: _buildSpecialText(
@@ -184,8 +226,8 @@ class _RectangleItemState extends State<RectangleItem> {
     );
   }
 
-  Widget _buildRectangleItem(
-      ThemeData theme, bool isSelected, double radius, double borderWidth) {
+  Widget _buildRectangleItem(ThemeData theme, bool isSelected,
+      BorderRadius radius, double borderWidth) {
     return Semantics(
       label: widget.rectangle.label,
       selected: isSelected,
@@ -200,14 +242,16 @@ class _RectangleItemState extends State<RectangleItem> {
             color: isSelected
                 ? theme.colorScheme.primary.withOpacity(0.15)
                 : theme.colorScheme.primary.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(radius),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 2,
-                offset: const Offset(0, 1),
-              ),
-            ],
+            borderRadius: radius,
+            boxShadow: widget.isJoined
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 2,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
             border: Border.all(
               color: isSelected
                   ? theme.colorScheme.primary.withOpacity(0.5)
@@ -217,8 +261,9 @@ class _RectangleItemState extends State<RectangleItem> {
           ),
           child: Material(
             color: Colors.transparent,
+            borderRadius: radius,
             child: InkWell(
-              borderRadius: BorderRadius.circular(radius),
+              borderRadius: radius,
               onTap: widget.onTap,
               splashColor: theme.colorScheme.primary.withOpacity(0.15),
               highlightColor: theme.colorScheme.primary.withOpacity(0.1),
