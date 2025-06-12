@@ -46,6 +46,7 @@ class _RectangleBarState extends State<RectangleBar> {
     final availableHeight = AppLayout.selectorHeight + (AppLayout.spacingS * 2);
     final spacing = widget.isCompact ? AppLayout.spacingXS : AppLayout.spacingS;
     final isCircleCategory = widget.selectedCategory == 'Circle';
+    final isPublicCategory = widget.selectedCategory == 'Public';
 
     return Container(
       height: availableHeight,
@@ -62,8 +63,12 @@ class _RectangleBarState extends State<RectangleBar> {
             // Circle category: joined rectangles with no spacing
             return _buildJoinedRectangles(
                 context, constraints, rectangleHeight);
+          } else if (isPublicCategory) {
+            // Public category: large circles with spacing
+            return _buildCircularRectangles(
+                constraints, rectangleHeight, spacing);
           } else {
-            // Private/Public category: separated rectangles with spacing
+            // Private category: separated rectangles with spacing
             return _buildSeparatedRectangles(
                 constraints, rectangleHeight, spacing);
           }
@@ -131,6 +136,43 @@ class _RectangleBarState extends State<RectangleBar> {
           }),
         ),
       ),
+    );
+  }
+
+  Widget _buildCircularRectangles(
+      BoxConstraints constraints, double rectangleHeight, double spacing) {
+    // For circular design, use circles that fit within the available height
+    final circleDiameter = rectangleHeight; // Use full height as diameter
+    final totalSpacing = spacing * (_rectangles.length - 1);
+    final availableWidth = constraints.maxWidth - totalSpacing;
+
+    // Check if circles can fit with their desired diameter
+    final totalCircleWidth = circleDiameter * _rectangles.length;
+    final actualDiameter = totalCircleWidth > availableWidth
+        ? availableWidth / _rectangles.length // Scale down if needed
+        : circleDiameter;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: List.generate(_rectangles.length * 2 - 1, (index) {
+        // Even indices are circles, odd indices are spacers
+        if (index.isEven) {
+          final rectangleIndex = index ~/ 2;
+          return RectangleItem(
+            width: actualDiameter,
+            height: actualDiameter,
+            rectangle: _rectangles[rectangleIndex],
+            onTap: () => _handleRectangleTap(_rectangles[rectangleIndex]),
+            onRename: (newLabel) =>
+                _handleRectangleRename(_rectangles[rectangleIndex], newLabel),
+            isCompact: widget.isCompact,
+            isJoined: false, // Separated style
+            isCircular: true, // New parameter for circular style
+          );
+        } else {
+          return SizedBox(width: spacing);
+        }
+      }),
     );
   }
 

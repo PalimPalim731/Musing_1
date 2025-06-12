@@ -15,6 +15,7 @@ class RectangleItem extends StatefulWidget {
   final bool isJoined; // New parameter for joined style (Circle category)
   final bool isFirst; // New parameter to indicate first item in joined layout
   final bool isLast; // New parameter to indicate last item in joined layout
+  final bool isCircular; // New parameter for circular style (Public category)
 
   const RectangleItem({
     super.key,
@@ -27,6 +28,7 @@ class RectangleItem extends StatefulWidget {
     this.isJoined = false, // Default to separated style
     this.isFirst = false,
     this.isLast = false,
+    this.isCircular = false, // Default to rectangular style
   });
 
   @override
@@ -86,8 +88,14 @@ class _RectangleItemState extends State<RectangleItem> {
     final isSelected = widget.rectangle.isSelected;
 
     // For joined style, only first and last items have rounded corners
+    // For circular style, always use circular radius
     BorderRadius getRadius() {
-      if (!widget.isJoined) {
+      if (widget.isCircular) {
+        // Circular style - make it a perfect circle
+        final radius =
+            widget.width / 2; // Use half the width for perfect circle
+        return BorderRadius.circular(radius);
+      } else if (!widget.isJoined) {
         // Normal separated style - all corners rounded
         return BorderRadius.circular(widget.isCompact
             ? AppLayout.buttonRadius * 0.8
@@ -292,9 +300,13 @@ class _RectangleItemState extends State<RectangleItem> {
     final secondChar = paddedText.length > 1 ? paddedText[1] : ' ';
     final thirdChar = paddedText.length > 2 ? paddedText[2] : ' ';
 
-    final largeFontSize = baseFontSize * 1.5; // First character size
-    final smallFontSize =
-        baseFontSize * 0.75; // Second and third character size
+    // Adjust font sizes for circular containers
+    final largeFontSize = widget.isCircular
+        ? baseFontSize * 1.3 // Slightly smaller for circular containers
+        : baseFontSize * 1.5; // Original size for rectangular
+    final smallFontSize = widget.isCircular
+        ? baseFontSize * 0.65 // Slightly smaller for circular containers
+        : baseFontSize * 0.75; // Original size for rectangular
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -313,7 +325,8 @@ class _RectangleItemState extends State<RectangleItem> {
         ),
 
         // Small spacing between first and other characters
-        const SizedBox(width: 2),
+        SizedBox(
+            width: widget.isCircular ? 1.5 : 2), // Tighter spacing for circles
 
         // Second and third characters (small, stacked vertically)
         Column(
