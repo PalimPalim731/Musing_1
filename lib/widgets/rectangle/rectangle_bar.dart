@@ -83,11 +83,12 @@ class _RectangleBarState extends State<RectangleBar> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppLayout.buttonRadius),
+        // Use much lighter shadow to match Private category appearance
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.05), // Reduced from 0.1 to 0.05
+            blurRadius: 2, // Reduced from 4 to 2
+            offset: const Offset(0, 1), // Reduced from (0, 2) to (0, 1)
           ),
         ],
       ),
@@ -103,13 +104,14 @@ class _RectangleBarState extends State<RectangleBar> {
               width: rectangleWidth,
               height: rectangleHeight,
               decoration: BoxDecoration(
-                // Add divider lines between rectangles
+                // Use much lighter divider lines to match Private category
                 border: Border(
                   right: isLast
                       ? BorderSide.none
                       : BorderSide(
-                          color: theme.colorScheme.primary.withOpacity(0.3),
-                          width: 1.5,
+                          color: theme.colorScheme.primary
+                              .withOpacity(0.15), // Reduced from 0.3 to 0.15
+                          width: 1.0, // Reduced from 1.5 to 1.0
                         ),
                 ),
               ),
