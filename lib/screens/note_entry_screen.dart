@@ -7,12 +7,10 @@ import '../widgets/category/category_separator_line.dart';
 import '../widgets/note/note_content.dart';
 import '../widgets/tag/tag_sidebar.dart';
 import '../widgets/bottom_bar/bottom_action_bar.dart';
-import '../widgets/theme/theme_toggle_button.dart';
 import '../widgets/tag/tag_page_toggle_button.dart';
 import '../services/note_service.dart';
 import '../services/tag_service.dart';
 import '../services/rectangle_service.dart';
-import '../services/theme_service.dart';
 import '../models/note.dart';
 import '../models/tag.dart';
 
@@ -36,7 +34,6 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   final NoteService _noteService = NoteService();
   final TagService _tagService = TagService();
   final RectangleService _rectangleService = RectangleService();
-  final ThemeService _themeService = ThemeService();
 
   // Controller for the note text input
   final TextEditingController _noteController = TextEditingController();
@@ -164,8 +161,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
                               focusNode: _noteFocusNode,
                               appliedQuickTags: _appliedQuickTags,
                               appliedRegularTags: _appliedRegularTags,
-                              selectedCategory:
-                                  _selectedCategory, // Pass the selected category
+                              selectedCategory: _selectedCategory,
                               onTagAdded: _handleTagAdded,
                               onTagRemoved: _handleTagRemoved,
                               onDelete: _handleDeleteNote,
@@ -204,14 +200,8 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
               },
             ),
 
-            // Theme toggle button in top left corner
-            ThemeToggleButton(
-              onToggle: _themeService.toggleTheme,
-              currentThemeMode: _themeService.currentThemeMode,
-              isCompact: isCompact,
-            ),
-
             // Tag page toggle button in top right corner
+            // Removed theme toggle button - only keeping tag page toggle
             TagPageToggleButton(
               onToggle: _handleTagPageToggle,
               currentPage: _currentTagPage,

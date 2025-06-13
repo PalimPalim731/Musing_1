@@ -8,6 +8,7 @@ import '../tag/tag_chip.dart'; // Import for TagRemovalData
 import 'action_button.dart';
 
 /// Note input area with text field and action buttons
+/// Light mode only
 class NoteInputArea extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode? focusNode;
@@ -119,19 +120,12 @@ class _NoteInputAreaState extends State<NoteInputArea> {
           key: _noteInputKey, // Key for bounds detection
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: theme.brightness == Brightness.light
-                ? isHighlighted
-                    ? Colors.blue.shade50
-                    : Colors.white
-                : isHighlighted
-                    ? const Color(0xFF1A2030)
-                    : const Color(0xFF1E1E1E),
+            // Light mode colors only
+            color: isHighlighted ? Colors.blue.shade50 : Colors.white,
             border: Border.all(
               color: isHighlighted
                   ? theme.colorScheme.primary.withOpacity(0.5)
-                  : theme.brightness == Brightness.light
-                      ? Colors.grey.shade300
-                      : Colors.grey.shade800,
+                  : Colors.grey.shade300,
             ),
             borderRadius: BorderRadius.circular(AppLayout.buttonRadius),
             // Add subtle shadow for depth
@@ -175,9 +169,8 @@ class _NoteInputAreaState extends State<NoteInputArea> {
                       hintText: 'Input text',
                       border: InputBorder.none,
                       hintStyle: TextStyle(
-                        color: theme.brightness == Brightness.light
-                            ? Colors.grey.shade400
-                            : Colors.grey.shade600,
+                        // Light mode hint color only
+                        color: Colors.grey.shade400,
                       ),
                     ),
                     style: theme.textTheme.bodyLarge,

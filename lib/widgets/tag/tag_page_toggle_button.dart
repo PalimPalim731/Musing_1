@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 
 /// Tag page toggle button for switching between first and second tag pages
+/// Light mode only
 class TagPageToggleButton extends StatelessWidget {
   final VoidCallback onToggle;
   final int currentPage;
@@ -38,9 +39,8 @@ class TagPageToggleButton extends StatelessWidget {
           height: buttonSize,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: theme.brightness == Brightness.light
-                ? Colors.white.withOpacity(0.9)
-                : const Color(0xFF2A2A2A).withOpacity(0.9),
+            // Light mode background only
+            color: Colors.white.withOpacity(0.9),
             border: Border.all(
               color: theme.colorScheme.primary.withOpacity(0.3),
               width: borderWidth,
@@ -79,8 +79,7 @@ class TagPageToggleButton extends StatelessWidget {
                       '${currentPage + 1}',
                       style: TextStyle(
                         color: theme.colorScheme.primary,
-                        fontSize: iconSize *
-                            0.9, // Increased from 0.6 to 0.9 to fill circle better
+                        fontSize: iconSize * 0.9,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

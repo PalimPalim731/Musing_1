@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 
 /// Bottom action bar with Settings, For You, and Profile buttons
+/// Light mode only
 class BottomActionBar extends StatelessWidget {
   final VoidCallback onSettingsPressed;
   final VoidCallback onExplorePressed;
@@ -137,9 +138,8 @@ class BottomActionBar extends StatelessWidget {
     required double borderWidth,
   }) {
     final theme = Theme.of(context);
-    final backgroundColor = theme.brightness == Brightness.light
-        ? Colors.white
-        : const Color(0xFF2A2A2A);
+    // Light mode background color only
+    const backgroundColor = Colors.white;
 
     return Semantics(
       label: tooltip,

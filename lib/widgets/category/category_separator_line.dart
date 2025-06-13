@@ -5,6 +5,7 @@ import '../../config/constants/layout.dart';
 
 /// Visual separator line between category sidebar and note content area
 /// Indicates where notes should be dragged for automatic categorization
+/// Light mode only
 class CategorySeparatorLine extends StatelessWidget {
   final double spacing;
   final double maxHeight;
@@ -38,9 +39,8 @@ class CategorySeparatorLine extends StatelessWidget {
                 width: 2.5, // Distinctive thickness
                 height: lineHeight,
                 decoration: BoxDecoration(
-                  color: theme.brightness == Brightness.light
-                      ? theme.colorScheme.primary.withOpacity(0.6)
-                      : theme.colorScheme.primary.withOpacity(0.8),
+                  // Light mode color only
+                  color: theme.colorScheme.primary.withOpacity(0.6),
                   borderRadius: BorderRadius.circular(1.25),
                 ),
               ),
