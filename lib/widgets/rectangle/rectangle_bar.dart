@@ -30,12 +30,19 @@ class _RectangleBarState extends State<RectangleBar> {
   @override
   void initState() {
     super.initState();
-    _rectangles = _rectangleService.getAllRectangles();
+    _rectangles = _rectangleService.getCurrentPageRectangles();
 
     // Listen to rectangle changes (like renames)
     _rectangleService.rectanglesStream.listen((updatedRectangles) {
       setState(() {
         _rectangles = updatedRectangles;
+      });
+    });
+
+    // Listen to page changes
+    _rectangleService.pageStream.listen((newPage) {
+      setState(() {
+        _rectangles = _rectangleService.getCurrentPageRectangles();
       });
     });
   }

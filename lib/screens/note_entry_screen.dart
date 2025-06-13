@@ -8,6 +8,7 @@ import '../widgets/note/note_content.dart';
 import '../widgets/tag/tag_sidebar.dart';
 import '../widgets/bottom_bar/bottom_action_bar.dart';
 import '../widgets/tag/tag_page_toggle_button.dart';
+import '../widgets/quick_tag/quick_tag_page_toggle_button.dart';
 import '../services/note_service.dart';
 import '../services/tag_service.dart';
 import '../services/rectangle_service.dart';
@@ -44,12 +45,18 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   // Track current tag page
   late int _currentTagPage;
 
+  // Track current quick-tag page
+  late int _currentQuickTagPage;
+
   @override
   void initState() {
     super.initState();
 
     // Initialize current tag page
     _currentTagPage = _tagService.currentPage;
+
+    // Initialize current quick-tag page
+    _currentQuickTagPage = _rectangleService.currentPage;
 
     // Listen to tag changes (like renames) to update applied tags
     _tagService.tagsStream.listen((updatedTags) {
@@ -103,6 +110,13 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     _tagService.categoryStream.listen((newActiveCategory) {
       // Update UI if needed when tag category changes
       setState(() {});
+    });
+
+    // Listen to rectangle page changes
+    _rectangleService.pageStream.listen((newPage) {
+      setState(() {
+        _currentQuickTagPage = newPage;
+      });
     });
   }
 
@@ -200,8 +214,15 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
               },
             ),
 
+            // Toggle buttons
+            // Quick-tag page toggle button in top left corner
+            QuickTagPageToggleButton(
+              onToggle: _handleQuickTagPageToggle,
+              currentPage: _currentQuickTagPage,
+              isCompact: isCompact,
+            ),
+
             // Tag page toggle button in top right corner
-            // Removed theme toggle button - only keeping tag page toggle
             TagPageToggleButton(
               onToggle: _handleTagPageToggle,
               currentPage: _currentTagPage,
@@ -228,6 +249,13 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   void _handleTagPageToggle() {
     _tagService.togglePage();
     debugPrint('Switched to tag page ${_tagService.currentPage + 1}');
+  }
+
+  // Handle quick-tag page toggle
+  void _handleQuickTagPageToggle() {
+    _rectangleService.togglePage();
+    debugPrint(
+        'Switched to quick-tag page ${_rectangleService.currentPage + 1}');
   }
 
   // Determine if a tag is a quick-tag (rectangle) based on ID

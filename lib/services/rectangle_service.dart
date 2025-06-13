@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/tag.dart';
 
-/// Service for managing rectangles with 3-character limit
+/// Service for managing rectangles with 3-character limit and page support
 class RectangleService {
   // Singleton pattern
   static final RectangleService _instance = RectangleService._internal();
@@ -12,15 +12,19 @@ class RectangleService {
   factory RectangleService() => _instance;
 
   RectangleService._internal() {
-    // Initialize with default rectangles
-    _rectangles.addAll(_defaultRectangles);
+    // Initialize with default rectangles for both pages
+    _rectangles.addAll(_defaultPage1Rectangles);
+    _rectangles.addAll(_defaultPage2Rectangles);
   }
 
   // Maximum rectangle label length constant
   static const int maxRectangleLength = 3;
 
-  // Default rectangles (IDs 101-107 to avoid conflicts with tags)
-  final List<TagData> _defaultRectangles = [
+  // Current active page (0 = first page, 1 = second page)
+  int _currentPage = 0;
+
+  // Default rectangles for Page 1 (IDs 101-107)
+  final List<TagData> _defaultPage1Rectangles = [
     TagData(id: '101', label: 'A12'),
     TagData(id: '102', label: 'B34'),
     TagData(id: '103', label: 'C56'),
@@ -30,6 +34,17 @@ class RectangleService {
     TagData(id: '107', label: 'G22'),
   ];
 
+  // Default rectangles for Page 2 (IDs 108-114)
+  final List<TagData> _defaultPage2Rectangles = [
+    TagData(id: '108', label: 'H33'),
+    TagData(id: '109', label: 'I44'),
+    TagData(id: '110', label: 'J55'),
+    TagData(id: '111', label: 'K66'),
+    TagData(id: '112', label: 'L77'),
+    TagData(id: '113', label: 'M88'),
+    TagData(id: '114', label: 'N99'),
+  ];
+
   // In-memory storage for rectangles - in a real app, this would be a database
   final List<TagData> _rectangles = [];
 
@@ -37,9 +52,34 @@ class RectangleService {
   final _rectanglesStreamController =
       StreamController<List<TagData>>.broadcast();
 
+  // Stream controller for broadcasting page changes
+  final _pageStreamController = StreamController<int>.broadcast();
+
   // Stream of rectangles for listening to changes
   Stream<List<TagData>> get rectanglesStream =>
       _rectanglesStreamController.stream;
+
+  // Stream of page changes for listening to page switches
+  Stream<int> get pageStream => _pageStreamController.stream;
+
+  // Get current page
+  int get currentPage => _currentPage;
+
+  // Toggle between pages
+  void togglePage() {
+    _currentPage = _currentPage == 0 ? 1 : 0;
+    _notifyPageListeners();
+    _notifyListeners();
+  }
+
+  // Set specific page
+  void setPage(int page) {
+    if (page >= 0 && page <= 1 && page != _currentPage) {
+      _currentPage = page;
+      _notifyPageListeners();
+      _notifyListeners();
+    }
+  }
 
   // Utility method to truncate rectangle labels to max length
   String _truncateLabel(String label) {
@@ -51,6 +91,22 @@ class RectangleService {
   // Get all rectangles
   List<TagData> getAllRectangles() {
     return List.unmodifiable(_rectangles);
+  }
+
+  // Get rectangles for the current page
+  List<TagData> getCurrentPageRectangles() {
+    return getRectanglesForPage(_currentPage);
+  }
+
+  // Get rectangles for a specific page
+  List<TagData> getRectanglesForPage(int page) {
+    if (page == 0) {
+      // Page 1: First 7 rectangles
+      return _rectangles.take(7).toList();
+    } else {
+      // Page 2: Next 7 rectangles
+      return _rectangles.skip(7).take(7).toList();
+    }
   }
 
   // Get a rectangle by ID
@@ -127,7 +183,7 @@ class RectangleService {
   // Delete a rectangle
   Future<bool> deleteRectangle(String id) async {
     // Don't allow deleting default rectangles
-    if (_defaultRectangles.any((rectangle) => rectangle.id == id)) {
+    if (_isDefaultRectangle(id)) {
       return false;
     }
 
@@ -141,6 +197,15 @@ class RectangleService {
     _notifyListeners();
 
     return true;
+  }
+
+  // Check if a rectangle is a default rectangle
+  bool _isDefaultRectangle(String id) {
+    final allDefaults = [
+      ..._defaultPage1Rectangles,
+      ..._defaultPage2Rectangles,
+    ];
+    return allDefaults.any((rectangle) => rectangle.id == id);
   }
 
   // Toggle rectangle selection
@@ -180,19 +245,31 @@ class RectangleService {
   // Reset to default rectangles
   Future<void> resetToDefaults() async {
     _rectangles.clear();
-    _rectangles.addAll(_defaultRectangles);
+    _rectangles.addAll(_defaultPage1Rectangles);
+    _rectangles.addAll(_defaultPage2Rectangles);
+    _currentPage = 0;
     _notifyListeners();
+    _notifyPageListeners();
   }
 
   // Notify listeners of changes
   void _notifyListeners() {
     if (!_rectanglesStreamController.isClosed) {
-      _rectanglesStreamController.add(List.unmodifiable(_rectangles));
+      _rectanglesStreamController
+          .add(List.unmodifiable(getCurrentPageRectangles()));
+    }
+  }
+
+  // Notify page listeners of changes
+  void _notifyPageListeners() {
+    if (!_pageStreamController.isClosed) {
+      _pageStreamController.add(_currentPage);
     }
   }
 
   // Dispose resources
   void dispose() {
     _rectanglesStreamController.close();
+    _pageStreamController.close();
   }
 }
