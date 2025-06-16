@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/tag.dart';
 
-/// Service for managing rectangles with 3-character limit and page support
+/// Service for managing rectangles with 3-character limit, page support, and category-specific sets
 class RectangleService {
   // Singleton pattern
   static final RectangleService _instance = RectangleService._internal();
@@ -12,9 +12,10 @@ class RectangleService {
   factory RectangleService() => _instance;
 
   RectangleService._internal() {
-    // Initialize with default rectangles for both pages
-    _rectangles.addAll(_defaultPage1Rectangles);
-    _rectangles.addAll(_defaultPage2Rectangles);
+    // Initialize with default rectangles for all categories
+    _initializeDefaultRectangles();
+    // Start with Private category
+    _currentCategory = 'Private';
   }
 
   // Maximum rectangle label length constant
@@ -23,8 +24,11 @@ class RectangleService {
   // Current active page (0 = first page, 1 = second page)
   int _currentPage = 0;
 
-  // Default rectangles for Page 1 (IDs 101-107)
-  final List<TagData> _defaultPage1Rectangles = [
+  // Current active category
+  String _currentCategory = 'Private';
+
+  // Default rectangles for Private category - Page 1 (IDs 101-107)
+  final List<TagData> _defaultPrivatePage1 = [
     TagData(id: '101', label: 'A12'),
     TagData(id: '102', label: 'B34'),
     TagData(id: '103', label: 'C56'),
@@ -34,8 +38,8 @@ class RectangleService {
     TagData(id: '107', label: 'G22'),
   ];
 
-  // Default rectangles for Page 2 (IDs 108-114)
-  final List<TagData> _defaultPage2Rectangles = [
+  // Default rectangles for Private category - Page 2 (IDs 108-114)
+  final List<TagData> _defaultPrivatePage2 = [
     TagData(id: '108', label: 'H33'),
     TagData(id: '109', label: 'I44'),
     TagData(id: '110', label: 'J55'),
@@ -45,8 +49,56 @@ class RectangleService {
     TagData(id: '114', label: 'N99'),
   ];
 
-  // In-memory storage for rectangles - in a real app, this would be a database
-  final List<TagData> _rectangles = [];
+  // Default rectangles for Circle category - Page 1 (IDs 115-121)
+  final List<TagData> _defaultCirclePage1 = [
+    TagData(id: '115', label: 'P01'),
+    TagData(id: '116', label: 'Q02'),
+    TagData(id: '117', label: 'R03'),
+    TagData(id: '118', label: 'S04'),
+    TagData(id: '119', label: 'T05'),
+    TagData(id: '120', label: 'U06'),
+    TagData(id: '121', label: 'V07'),
+  ];
+
+  // Default rectangles for Circle category - Page 2 (IDs 122-128)
+  final List<TagData> _defaultCirclePage2 = [
+    TagData(id: '122', label: 'W08'),
+    TagData(id: '123', label: 'X09'),
+    TagData(id: '124', label: 'Y10'),
+    TagData(id: '125', label: 'Z11'),
+    TagData(id: '126', label: 'A21'),
+    TagData(id: '127', label: 'B22'),
+    TagData(id: '128', label: 'C23'),
+  ];
+
+  // Default rectangles for Public category - Page 1 (IDs 129-135)
+  final List<TagData> _defaultPublicPage1 = [
+    TagData(id: '129', label: 'D24'),
+    TagData(id: '130', label: 'E25'),
+    TagData(id: '131', label: 'F26'),
+    TagData(id: '132', label: 'G27'),
+    TagData(id: '133', label: 'H28'),
+    TagData(id: '134', label: 'I29'),
+    TagData(id: '135', label: 'J30'),
+  ];
+
+  // Default rectangles for Public category - Page 2 (IDs 136-142)
+  final List<TagData> _defaultPublicPage2 = [
+    TagData(id: '136', label: 'K31'),
+    TagData(id: '137', label: 'L32'),
+    TagData(id: '138', label: 'M33'),
+    TagData(id: '139', label: 'N34'),
+    TagData(id: '140', label: 'O35'),
+    TagData(id: '141', label: 'P36'),
+    TagData(id: '142', label: 'Q37'),
+  ];
+
+  // Storage for all rectangles organized by category
+  final Map<String, List<TagData>> _categoryRectangles = {
+    'Private': [],
+    'Circle': [],
+    'Public': [],
+  };
 
   // Stream controller for broadcasting rectangle changes
   final _rectanglesStreamController =
@@ -55,6 +107,9 @@ class RectangleService {
   // Stream controller for broadcasting page changes
   final _pageStreamController = StreamController<int>.broadcast();
 
+  // Stream controller for broadcasting category changes
+  final _categoryStreamController = StreamController<String>.broadcast();
+
   // Stream of rectangles for listening to changes
   Stream<List<TagData>> get rectanglesStream =>
       _rectanglesStreamController.stream;
@@ -62,10 +117,43 @@ class RectangleService {
   // Stream of page changes for listening to page switches
   Stream<int> get pageStream => _pageStreamController.stream;
 
+  // Stream of category changes for listening to category switches
+  Stream<String> get categoryStream => _categoryStreamController.stream;
+
   // Get current page
   int get currentPage => _currentPage;
 
-  // Toggle between pages
+  // Get current category
+  String get currentCategory => _currentCategory;
+
+  // Initialize default rectangles for all categories
+  void _initializeDefaultRectangles() {
+    // Initialize Private rectangles
+    _categoryRectangles['Private']!.addAll(_defaultPrivatePage1);
+    _categoryRectangles['Private']!.addAll(_defaultPrivatePage2);
+
+    // Initialize Circle rectangles
+    _categoryRectangles['Circle']!.addAll(_defaultCirclePage1);
+    _categoryRectangles['Circle']!.addAll(_defaultCirclePage2);
+
+    // Initialize Public rectangles
+    _categoryRectangles['Public']!.addAll(_defaultPublicPage1);
+    _categoryRectangles['Public']!.addAll(_defaultPublicPage2);
+  }
+
+  // Switch to a different category's rectangle set
+  void switchCategory(String category) {
+    if (_categoryRectangles.containsKey(category) &&
+        category != _currentCategory) {
+      _currentCategory = category;
+      _currentPage = 0; // Reset to first page when switching categories
+      _notifyCategoryListeners();
+      _notifyPageListeners();
+      _notifyListeners();
+    }
+  }
+
+  // Toggle between pages within current category
   void togglePage() {
     _currentPage = _currentPage == 0 ? 1 : 0;
     _notifyPageListeners();
@@ -88,112 +176,123 @@ class RectangleService {
         : label;
   }
 
-  // Get all rectangles
+  // Get all rectangles for current category
   List<TagData> getAllRectangles() {
-    return List.unmodifiable(_rectangles);
+    return List.unmodifiable(_categoryRectangles[_currentCategory] ?? []);
   }
 
-  // Get rectangles for the current page
+  // Get all rectangles for a specific category
+  List<TagData> getAllRectanglesForCategory(String category) {
+    return List.unmodifiable(_categoryRectangles[category] ?? []);
+  }
+
+  // Get rectangles for the current page of current category
   List<TagData> getCurrentPageRectangles() {
     return getRectanglesForPage(_currentPage);
   }
 
-  // Get rectangles for a specific page
+  // Get rectangles for a specific page of current category
   List<TagData> getRectanglesForPage(int page) {
+    final categoryRectangles = _categoryRectangles[_currentCategory] ?? [];
+
     if (page == 0) {
       // Page 1: First 7 rectangles
-      return _rectangles.take(7).toList();
+      return categoryRectangles.take(7).toList();
     } else {
       // Page 2: Next 7 rectangles
-      return _rectangles.skip(7).take(7).toList();
+      return categoryRectangles.skip(7).take(7).toList();
     }
   }
 
-  // Get a rectangle by ID
+  // Get a rectangle by ID from current category
   TagData? getRectangleById(String id) {
+    final categoryRectangles = _categoryRectangles[_currentCategory] ?? [];
     try {
-      return _rectangles.firstWhere((rectangle) => rectangle.id == id);
+      return categoryRectangles.firstWhere((rectangle) => rectangle.id == id);
     } catch (e) {
       return null; // Rectangle not found
     }
   }
 
-  // Add a new rectangle
+  // Add a new rectangle to current category
   Future<TagData> addRectangle(String label) async {
-    // Truncate label to max length
     final truncatedLabel = _truncateLabel(label.trim());
 
     if (truncatedLabel.isEmpty) {
       throw ArgumentError('Rectangle label cannot be empty');
     }
 
-    // Generate a unique ID - in a real app, this would be handled by the database
-    // For rectangles, use IDs starting from 101
+    // Generate a unique ID
     int highestId = 100;
-    for (var rectangle in _rectangles) {
-      final id = int.tryParse(rectangle.id) ?? 0;
-      if (id > highestId) highestId = id;
+    for (var categoryList in _categoryRectangles.values) {
+      for (var rectangle in categoryList) {
+        final id = int.tryParse(rectangle.id) ?? 0;
+        if (id > highestId) highestId = id;
+      }
     }
     final newId = (highestId + 1).toString();
 
     final rectangle = TagData(id: newId, label: truncatedLabel);
 
-    _rectangles.add(rectangle);
+    _categoryRectangles[_currentCategory]!.add(rectangle);
     _notifyListeners();
 
     return rectangle;
   }
 
-  // Update a rectangle
+  // Update a rectangle in current category
   Future<TagData?> updateRectangle(String id, String label) async {
-    final index = _rectangles.indexWhere((rectangle) => rectangle.id == id);
+    final categoryRectangles = _categoryRectangles[_currentCategory]!;
+    final index =
+        categoryRectangles.indexWhere((rectangle) => rectangle.id == id);
 
     if (index == -1) {
       return null; // Rectangle not found
     }
 
-    // Truncate label to max length
     final truncatedLabel = _truncateLabel(label.trim());
 
     if (truncatedLabel.isEmpty) {
       debugPrint('Rectangle label cannot be empty. Keeping original name.');
-      return _rectangles[index];
+      return categoryRectangles[index];
     }
 
-    // Don't update if the label is the same
-    if (_rectangles[index].label == truncatedLabel) {
-      return _rectangles[index];
+    if (categoryRectangles[index].label == truncatedLabel) {
+      return categoryRectangles[index];
     }
 
-    // Ensure we're not creating a duplicate
-    if (_rectangles.any((r) =>
+    // Check for duplicates within current category
+    if (categoryRectangles.any((r) =>
         r.id != id && r.label.toLowerCase() == truncatedLabel.toLowerCase())) {
       debugPrint(
           'Rectangle $truncatedLabel already exists. Using original name.');
-      return _rectangles[index];
+      return categoryRectangles[index];
     }
 
-    final updatedRectangle = _rectangles[index].copyWith(label: truncatedLabel);
-    _rectangles[index] = updatedRectangle;
+    final updatedRectangle =
+        categoryRectangles[index].copyWith(label: truncatedLabel);
+    categoryRectangles[index] = updatedRectangle;
     _notifyListeners();
 
     return updatedRectangle;
   }
 
-  // Delete a rectangle
+  // Delete a rectangle from current category
   Future<bool> deleteRectangle(String id) async {
     // Don't allow deleting default rectangles
     if (_isDefaultRectangle(id)) {
       return false;
     }
 
-    final index = _rectangles.indexWhere((rectangle) => rectangle.id == id);
+    final categoryRectangles = _categoryRectangles[_currentCategory]!;
+    final index =
+        categoryRectangles.indexWhere((rectangle) => rectangle.id == id);
 
     if (index == -1) {
       return false; // Rectangle not found
     }
 
-    _rectangles.removeAt(index);
+    categoryRectangles.removeAt(index);
     _notifyListeners();
 
     return true;
@@ -202,37 +301,45 @@ class RectangleService {
   // Check if a rectangle is a default rectangle
   bool _isDefaultRectangle(String id) {
     final allDefaults = [
-      ..._defaultPage1Rectangles,
-      ..._defaultPage2Rectangles,
+      ..._defaultPrivatePage1,
+      ..._defaultPrivatePage2,
+      ..._defaultCirclePage1,
+      ..._defaultCirclePage2,
+      ..._defaultPublicPage1,
+      ..._defaultPublicPage2,
     ];
     return allDefaults.any((rectangle) => rectangle.id == id);
   }
 
-  // Toggle rectangle selection
+  // Toggle rectangle selection in current category
   Future<TagData?> toggleRectangleSelection(String id) async {
-    final index = _rectangles.indexWhere((rectangle) => rectangle.id == id);
+    final categoryRectangles = _categoryRectangles[_currentCategory]!;
+    final index =
+        categoryRectangles.indexWhere((rectangle) => rectangle.id == id);
 
     if (index == -1) {
       return null; // Rectangle not found
     }
 
-    final rectangle = _rectangles[index];
+    final rectangle = categoryRectangles[index];
     final updatedRectangle =
         rectangle.copyWith(isSelected: !rectangle.isSelected);
 
-    _rectangles[index] = updatedRectangle;
+    categoryRectangles[index] = updatedRectangle;
     _notifyListeners();
 
     return updatedRectangle;
   }
 
-  // Reset rectangle selections
+  // Reset rectangle selections for current category
   Future<void> resetRectangleSelections() async {
+    final categoryRectangles = _categoryRectangles[_currentCategory]!;
     bool changed = false;
 
-    for (int i = 0; i < _rectangles.length; i++) {
-      if (_rectangles[i].isSelected) {
-        _rectangles[i] = _rectangles[i].copyWith(isSelected: false);
+    for (int i = 0; i < categoryRectangles.length; i++) {
+      if (categoryRectangles[i].isSelected) {
+        categoryRectangles[i] =
+            categoryRectangles[i].copyWith(isSelected: false);
         changed = true;
       }
     }
@@ -242,14 +349,22 @@ class RectangleService {
     }
   }
 
-  // Reset to default rectangles
+  // Reset to default rectangles for all categories
   Future<void> resetToDefaults() async {
-    _rectangles.clear();
-    _rectangles.addAll(_defaultPage1Rectangles);
-    _rectangles.addAll(_defaultPage2Rectangles);
+    // Clear all categories
+    for (var key in _categoryRectangles.keys) {
+      _categoryRectangles[key]!.clear();
+    }
+
+    // Reinitialize defaults
+    _initializeDefaultRectangles();
+
     _currentPage = 0;
+    _currentCategory = 'Private';
+
     _notifyListeners();
     _notifyPageListeners();
+    _notifyCategoryListeners();
   }
 
   // Notify listeners of changes
@@ -267,9 +382,17 @@ class RectangleService {
     }
   }
 
+  // Notify category listeners of changes
+  void _notifyCategoryListeners() {
+    if (!_categoryStreamController.isClosed) {
+      _categoryStreamController.add(_currentCategory);
+    }
+  }
+
   // Dispose resources
   void dispose() {
     _rectanglesStreamController.close();
     _pageStreamController.close();
+    _categoryStreamController.close();
   }
 }

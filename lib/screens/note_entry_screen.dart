@@ -84,9 +84,12 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     _rectangleService.rectanglesStream.listen((updatedRectangles) {
       if (_appliedQuickTags.isNotEmpty) {
         setState(() {
+          // Need to get all rectangles from current category, not just current page
+          final allRectangles = _rectangleService.getAllRectangles();
+
           for (int i = 0; i < _appliedQuickTags.length; i++) {
             final currentTag = _appliedQuickTags[i];
-            final updatedRectangle = updatedRectangles.firstWhere(
+            final updatedRectangle = allRectangles.firstWhere(
               (rectangle) => rectangle.id == currentTag.id,
               orElse: () => currentTag,
             );
@@ -117,6 +120,12 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
       setState(() {
         _currentQuickTagPage = newPage;
       });
+    });
+
+    // Listen to rectangle category changes to update UI
+    _rectangleService.categoryStream.listen((newActiveCategory) {
+      // Update UI if needed when rectangle category changes
+      setState(() {});
     });
   }
 
@@ -240,9 +249,10 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
       _selectedCategory = category;
     });
 
-    // Switch the tag service to this category's tag set
+    // Switch both tag service and rectangle service to this category's sets
     _tagService.switchCategory(category);
-    debugPrint('Switched to $category category tags');
+    _rectangleService.switchCategory(category);
+    debugPrint('Switched to $category category for both tags and quick-tags');
   }
 
   // Handle tag page toggle
