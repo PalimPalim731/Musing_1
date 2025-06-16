@@ -4,8 +4,7 @@
 class Note {
   final String id;
   final String content;
-  final String category; // 'Private' or 'Public'
-  final String size; // 'Large', 'Medium', or 'Small'
+  final String category; // 'Private', 'Circle', or 'Public'
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<String> tagIds;
@@ -15,7 +14,6 @@ class Note {
     required this.id,
     required this.content,
     required this.category,
-    required this.size,
     required this.createdAt,
     required this.updatedAt,
     this.tagIds = const [],
@@ -27,7 +25,6 @@ class Note {
     required String id,
     required String content,
     required String category,
-    required String size,
     List<String> tagIds = const [],
     Map<String, dynamic>? metadata,
   }) {
@@ -36,7 +33,6 @@ class Note {
       id: id,
       content: content,
       category: category,
-      size: size,
       createdAt: now,
       updatedAt: now,
       tagIds: tagIds,
@@ -49,7 +45,6 @@ class Note {
     String? id,
     String? content,
     String? category,
-    String? size,
     DateTime? createdAt,
     DateTime? updatedAt,
     List<String>? tagIds,
@@ -60,7 +55,6 @@ class Note {
       id: id ?? this.id,
       content: content ?? this.content,
       category: category ?? this.category,
-      size: size ?? this.size,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       tagIds: tagIds ?? this.tagIds,
@@ -72,7 +66,6 @@ class Note {
   Note update({
     String? content,
     String? category,
-    String? size,
     List<String>? tagIds,
     Map<String, dynamic>? metadata,
     bool clearMetadata = false,
@@ -80,7 +73,6 @@ class Note {
     return copyWith(
       content: content,
       category: category,
-      size: size,
       updatedAt: DateTime.now(),
       tagIds: tagIds,
       metadata: metadata,
@@ -94,7 +86,6 @@ class Note {
       id: json['id'] as String,
       content: json['content'] as String,
       category: json['category'] as String,
-      size: json['size'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
       tagIds: List<String>.from(json['tagIds'] ?? []),
@@ -107,7 +98,6 @@ class Note {
       'id': id,
       'content': content,
       'category': category,
-      'size': size,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'tagIds': tagIds,
@@ -119,9 +109,7 @@ class Note {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Note &&
-          runtimeType == other.runtimeType &&
-          id == other.id;
+      other is Note && runtimeType == other.runtimeType && id == other.id;
 
   @override
   int get hashCode => id.hashCode;
