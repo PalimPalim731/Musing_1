@@ -336,12 +336,11 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
       ..._appliedRegularTags.map((tag) => tag.id),
     ];
 
-    // Call the note service to save the note
+    // Call the note service to save the note (no size parameter needed)
     _noteService
         .addNote(
       content: content,
       category: _selectedCategory,
-      size: 'Medium', // Default size
       tagIds: allTagIds,
     )
         .then((note) {
