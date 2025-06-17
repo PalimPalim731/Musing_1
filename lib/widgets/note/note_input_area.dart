@@ -72,7 +72,7 @@ class _NoteInputAreaState extends State<NoteInputArea> {
         MediaQuery.of(context).size.width < AppLayout.tabletBreakpoint;
     final theme = Theme.of(context);
     final iconSize = AppLayout.getIconSize(context);
-    final actionBarHeight = isCompact ? 45.0 : 60.0;
+    final actionBarHeight = isCompact ? 33.75 : 45.0;
     final padding = isCompact ? 10.0 : 16.0;
     final contentPadding = isCompact
         ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
