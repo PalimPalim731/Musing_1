@@ -15,7 +15,44 @@ import '../services/rectangle_service.dart';
 import '../models/note.dart';
 import '../models/tag.dart';
 
-/// Main screen for note entry and management
+/// Data structure to hold category-specific note state
+class CategoryNoteState {
+  final TextEditingController controller;
+  final List<TagData> appliedQuickTags;
+  final List<TagData> appliedRegularTags;
+
+  CategoryNoteState({
+    required this.controller,
+    List<TagData>? appliedQuickTags,
+    List<TagData>? appliedRegularTags,
+  })  : appliedQuickTags = appliedQuickTags ?? [],
+        appliedRegularTags = appliedRegularTags ?? [];
+
+  /// Create a copy with updated values
+  CategoryNoteState copyWith({
+    TextEditingController? controller,
+    List<TagData>? appliedQuickTags,
+    List<TagData>? appliedRegularTags,
+  }) {
+    return CategoryNoteState(
+      controller: controller ?? this.controller,
+      appliedQuickTags: appliedQuickTags ?? List.from(this.appliedQuickTags),
+      appliedRegularTags:
+          appliedRegularTags ?? List.from(this.appliedRegularTags),
+    );
+  }
+
+  /// Check if this note state has any content
+  bool get hasContent =>
+      controller.text.isNotEmpty ||
+      appliedQuickTags.isNotEmpty ||
+      appliedRegularTags.isNotEmpty;
+
+  /// Get total number of applied tags
+  int get totalTagCount => appliedQuickTags.length + appliedRegularTags.length;
+}
+
+/// Main screen for note entry and management with category-specific note layers
 class NoteEntryScreen extends StatefulWidget {
   const NoteEntryScreen({super.key});
 
@@ -24,20 +61,16 @@ class NoteEntryScreen extends StatefulWidget {
 }
 
 class _NoteEntryScreenState extends State<NoteEntryScreen> {
-  // Active selections with default values
+  // Active category selection
   String _selectedCategory = 'Private';
 
-  // Applied tags to the current note (separated by type)
-  final List<TagData> _appliedQuickTags = []; // Rectangle-based tags (3 chars)
-  final List<TagData> _appliedRegularTags = []; // Sidebar tags (longer names)
+  // Category-specific note states - each category has its own note layer
+  late final Map<String, CategoryNoteState> _categoryNoteStates;
 
   // Services for data operations
   final NoteService _noteService = NoteService();
   final TagService _tagService = TagService();
   final RectangleService _rectangleService = RectangleService();
-
-  // Controller for the note text input
-  final TextEditingController _noteController = TextEditingController();
 
   // Focus node to manage keyboard focus
   final FocusNode _noteFocusNode = FocusNode();
@@ -48,9 +81,25 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   // Track current quick-tag page
   late int _currentQuickTagPage;
 
+  // Getter for current category's note state
+  CategoryNoteState get _currentNoteState =>
+      _categoryNoteStates[_selectedCategory]!;
+
+  // Getters for current category's data (for easier access)
+  TextEditingController get _noteController => _currentNoteState.controller;
+  List<TagData> get _appliedQuickTags => _currentNoteState.appliedQuickTags;
+  List<TagData> get _appliedRegularTags => _currentNoteState.appliedRegularTags;
+
   @override
   void initState() {
     super.initState();
+
+    // Initialize category-specific note states
+    _categoryNoteStates = {
+      'Private': CategoryNoteState(controller: TextEditingController()),
+      'Circle': CategoryNoteState(controller: TextEditingController()),
+      'Public': CategoryNoteState(controller: TextEditingController()),
+    };
 
     // Initialize current tag page
     _currentTagPage = _tagService.currentPage;
@@ -60,46 +109,12 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
 
     // Listen to tag changes (like renames) to update applied tags
     _tagService.tagsStream.listen((updatedTags) {
-      // Update applied regular tags if any have been renamed
-      if (_appliedRegularTags.isNotEmpty) {
-        setState(() {
-          final allTags = _tagService.getAllTags();
-
-          for (int i = 0; i < _appliedRegularTags.length; i++) {
-            final currentTag = _appliedRegularTags[i];
-            final updatedTag = allTags.firstWhere(
-              (tag) => tag.id == currentTag.id,
-              orElse: () => currentTag,
-            );
-
-            if (updatedTag.label != currentTag.label) {
-              _appliedRegularTags[i] = updatedTag;
-            }
-          }
-        });
-      }
+      _updateAppliedTagsFromService();
     });
 
     // Listen to rectangle changes (like renames) to update applied quick-tags
     _rectangleService.rectanglesStream.listen((updatedRectangles) {
-      if (_appliedQuickTags.isNotEmpty) {
-        setState(() {
-          // Need to get all rectangles from current category, not just current page
-          final allRectangles = _rectangleService.getAllRectangles();
-
-          for (int i = 0; i < _appliedQuickTags.length; i++) {
-            final currentTag = _appliedQuickTags[i];
-            final updatedRectangle = allRectangles.firstWhere(
-              (rectangle) => rectangle.id == currentTag.id,
-              orElse: () => currentTag,
-            );
-
-            if (updatedRectangle.label != currentTag.label) {
-              _appliedQuickTags[i] = updatedRectangle;
-            }
-          }
-        });
-      }
+      _updateAppliedQuickTagsFromService();
     });
 
     // Listen to tag page changes
@@ -111,8 +126,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
 
     // Listen to tag category changes to update UI
     _tagService.categoryStream.listen((newActiveCategory) {
-      // Update UI if needed when tag category changes
-      setState(() {});
+      setState(() {}); // Trigger UI update
     });
 
     // Listen to rectangle page changes
@@ -124,17 +138,79 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
 
     // Listen to rectangle category changes to update UI
     _rectangleService.categoryStream.listen((newActiveCategory) {
-      // Update UI if needed when rectangle category changes
-      setState(() {});
+      setState(() {}); // Trigger UI update
     });
   }
 
   @override
   void dispose() {
-    // Clean up controllers and focus nodes when the widget is disposed
-    _noteController.dispose();
+    // Clean up all controllers and focus nodes
+    for (var categoryState in _categoryNoteStates.values) {
+      categoryState.controller.dispose();
+    }
     _noteFocusNode.dispose();
     super.dispose();
+  }
+
+  /// Update applied regular tags when service data changes
+  void _updateAppliedTagsFromService() {
+    bool hasChanges = false;
+
+    for (var category in _categoryNoteStates.keys) {
+      final categoryState = _categoryNoteStates[category]!;
+      if (categoryState.appliedRegularTags.isNotEmpty) {
+        // Get all tags for this specific category
+        final allTagsForCategory = _tagService.getAllTagsForCategory(category);
+
+        for (int i = 0; i < categoryState.appliedRegularTags.length; i++) {
+          final currentTag = categoryState.appliedRegularTags[i];
+          final updatedTag = allTagsForCategory.firstWhere(
+            (tag) => tag.id == currentTag.id,
+            orElse: () => currentTag,
+          );
+
+          if (updatedTag.label != currentTag.label) {
+            categoryState.appliedRegularTags[i] = updatedTag;
+            hasChanges = true;
+          }
+        }
+      }
+    }
+
+    if (hasChanges) {
+      setState(() {}); // Trigger UI update
+    }
+  }
+
+  /// Update applied quick-tags when service data changes
+  void _updateAppliedQuickTagsFromService() {
+    bool hasChanges = false;
+
+    for (var category in _categoryNoteStates.keys) {
+      final categoryState = _categoryNoteStates[category]!;
+      if (categoryState.appliedQuickTags.isNotEmpty) {
+        // Get all rectangles for this specific category
+        final allRectanglesForCategory =
+            _rectangleService.getAllRectanglesForCategory(category);
+
+        for (int i = 0; i < categoryState.appliedQuickTags.length; i++) {
+          final currentTag = categoryState.appliedQuickTags[i];
+          final updatedRectangle = allRectanglesForCategory.firstWhere(
+            (rectangle) => rectangle.id == currentTag.id,
+            orElse: () => currentTag,
+          );
+
+          if (updatedRectangle.label != currentTag.label) {
+            categoryState.appliedQuickTags[i] = updatedRectangle;
+            hasChanges = true;
+          }
+        }
+      }
+    }
+
+    if (hasChanges) {
+      setState(() {}); // Trigger UI update
+    }
   }
 
   @override
@@ -245,6 +321,17 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
 
   // State management methods
   void _selectCategory(String category) {
+    if (category == _selectedCategory) return; // No change needed
+
+    debugPrint('Switching from $_selectedCategory to $category category');
+
+    // Log current state before switching
+    final currentState = _currentNoteState;
+    if (currentState.hasContent) {
+      debugPrint(
+          'Preserving $category note with ${currentState.controller.text.length} characters and ${currentState.totalTagCount} tags');
+    }
+
     setState(() {
       _selectedCategory = category;
     });
@@ -252,7 +339,15 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     // Switch both tag service and rectangle service to this category's sets
     _tagService.switchCategory(category);
     _rectangleService.switchCategory(category);
-    debugPrint('Switched to $category category for both tags and quick-tags');
+
+    // Log new state after switching
+    final newState = _currentNoteState;
+    if (newState.hasContent) {
+      debugPrint(
+          'Loaded $category note with ${newState.controller.text.length} characters and ${newState.totalTagCount} tags');
+    } else {
+      debugPrint('Loaded empty $category note space');
+    }
   }
 
   // Handle tag page toggle
@@ -278,16 +373,18 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   void _handleTagAdded(TagData tag) {
     setState(() {
       if (_isQuickTag(tag)) {
-        // Add to quick-tags if not already present
+        // Add to current category's quick-tags if not already present
         if (!_appliedQuickTags.any((t) => t.id == tag.id)) {
           _appliedQuickTags.add(tag);
-          debugPrint('Quick-tag added to note: ${tag.label}');
+          debugPrint(
+              'Quick-tag added to $_selectedCategory note: ${tag.label}');
         }
       } else {
-        // Add to regular-tags if not already present
+        // Add to current category's regular-tags if not already present
         if (!_appliedRegularTags.any((t) => t.id == tag.id)) {
           _appliedRegularTags.add(tag);
-          debugPrint('Regular-tag added to note: ${tag.label}');
+          debugPrint(
+              'Regular-tag added to $_selectedCategory note: ${tag.label}');
         }
       }
     });
@@ -298,10 +395,12 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     setState(() {
       if (_isQuickTag(tag)) {
         _appliedQuickTags.removeWhere((t) => t.id == tag.id);
-        debugPrint('Quick-tag removed from note: ${tag.label}');
+        debugPrint(
+            'Quick-tag removed from $_selectedCategory note: ${tag.label}');
       } else {
         _appliedRegularTags.removeWhere((t) => t.id == tag.id);
-        debugPrint('Regular-tag removed from note: ${tag.label}');
+        debugPrint(
+            'Regular-tag removed from $_selectedCategory note: ${tag.label}');
       }
     });
   }
@@ -313,7 +412,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   }
 
   void _handleExplorePressed() {
-    // Save the note first if needed
+    // Save the current note first if needed
     _saveCurrentNote();
 
     // TODO: Navigate to explore screen
@@ -328,7 +427,11 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   // Save the current note (combines both tag types)
   void _saveCurrentNote() {
     final content = _noteController.text;
-    if (content.isEmpty) return;
+    if (content.isEmpty &&
+        _appliedQuickTags.isEmpty &&
+        _appliedRegularTags.isEmpty) {
+      return; // Nothing to save
+    }
 
     // Combine all applied tag IDs (both quick-tags and regular-tags)
     final allTagIds = [
@@ -341,11 +444,11 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
         .addNote(
       content: content,
       category: _selectedCategory,
-      size: 'Medium', // Default size
       tagIds: allTagIds,
+      size: 'Medium', // Default size for notes
     )
         .then((note) {
-      debugPrint('Note saved: ${note.id}');
+      debugPrint('Note saved to $_selectedCategory: ${note.id}');
       debugPrint(
           'Quick-tags: ${_appliedQuickTags.map((t) => t.label).join(", ")}');
       debugPrint(
@@ -353,13 +456,13 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
 
       // Show confirmation to the user
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Note saved'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text('$_selectedCategory note saved'),
+          duration: const Duration(seconds: 2),
         ),
       );
 
-      // Clear the note input and reset state
+      // Clear the current category's note input and reset state
       _noteController.clear();
 
       setState(() {
@@ -371,13 +474,15 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
 
   // Centralized note action handlers
   void _handleDeleteNote() {
-    if (_noteController.text.isEmpty) return;
+    final currentState = _currentNoteState;
+    if (!currentState.hasContent) return;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete note?'),
-        content: const Text('Are you sure you want to delete this note?'),
+        title: Text('Delete $_selectedCategory note?'),
+        content: Text(
+            'Are you sure you want to delete this $_selectedCategory note?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -388,11 +493,13 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
               _noteController.clear();
               Navigator.of(context).pop();
 
-              // Reset both types of applied tags
+              // Reset current category's applied tags
               setState(() {
                 _appliedQuickTags.clear();
                 _appliedRegularTags.clear();
               });
+
+              debugPrint('$_selectedCategory note deleted');
             },
             child: const Text('DELETE'),
           ),
@@ -402,11 +509,13 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   }
 
   void _handleUndoNote() {
-    debugPrint('Undo pressed');
+    debugPrint('Undo pressed for $_selectedCategory note');
+    // TODO: Implement undo functionality per category
   }
 
   void _handleFormatNote() {
-    debugPrint('Format pressed - Feature to be implemented later');
+    debugPrint(
+        'Format pressed for $_selectedCategory note - Feature to be implemented later');
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -417,14 +526,17 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   }
 
   void _handleCameraPressed() {
-    debugPrint('Camera pressed');
+    debugPrint('Camera pressed for $_selectedCategory note');
+    // TODO: Implement camera functionality per category
   }
 
   void _handleMicPressed() {
-    debugPrint('Mic pressed');
+    debugPrint('Mic pressed for $_selectedCategory note');
+    // TODO: Implement voice recording functionality per category
   }
 
   void _handleLinkPressed() {
-    debugPrint('Link pressed');
+    debugPrint('Link pressed for $_selectedCategory note');
+    // TODO: Implement link functionality per category
   }
 }
