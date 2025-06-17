@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/tag.dart';
 
-/// Service for managing rectangles with 3-character limit, page support, and category-specific sets
+/// Service for managing rectangles with category-specific character limits, page support, and category-specific sets
 class RectangleService {
   // Singleton pattern
   static final RectangleService _instance = RectangleService._internal();
@@ -18,8 +18,11 @@ class RectangleService {
     _currentCategory = 'Private';
   }
 
-  // Maximum rectangle label length constant
-  static const int maxRectangleLength = 3;
+  // Character limits by category
+  static const int maxPrivateRectangleLength = 3;
+  static const int maxCircleRectangleLength = 3;
+  static const int maxPublicRectangleLength =
+      10; // New 10-character limit for Public
 
   // Current active page (0 = first page, 1 = second page)
   int _currentPage = 0;
@@ -71,26 +74,24 @@ class RectangleService {
     TagData(id: '128', label: 'C23'),
   ];
 
-  // Default rectangles for Public category - Page 1 (IDs 129-135)
+  // Default rectangles for Public category - Page 1 (IDs 129-134) - NOW ONLY 6 RECTANGLES
   final List<TagData> _defaultPublicPage1 = [
-    TagData(id: '129', label: 'D24'),
-    TagData(id: '130', label: 'E25'),
-    TagData(id: '131', label: 'F26'),
-    TagData(id: '132', label: 'G27'),
-    TagData(id: '133', label: 'H28'),
-    TagData(id: '134', label: 'I29'),
-    TagData(id: '135', label: 'J30'),
+    TagData(id: '129', label: 'Announce'),
+    TagData(id: '130', label: 'Blog'),
+    TagData(id: '131', label: 'Article'),
+    TagData(id: '132', label: 'News'),
+    TagData(id: '133', label: 'Review'),
+    TagData(id: '134', label: 'Tutorial'),
   ];
 
-  // Default rectangles for Public category - Page 2 (IDs 136-142)
+  // Default rectangles for Public category - Page 2 (IDs 135-140) - NOW ONLY 6 RECTANGLES
   final List<TagData> _defaultPublicPage2 = [
-    TagData(id: '136', label: 'K31'),
-    TagData(id: '137', label: 'L32'),
-    TagData(id: '138', label: 'M33'),
-    TagData(id: '139', label: 'N34'),
-    TagData(id: '140', label: 'O35'),
-    TagData(id: '141', label: 'P36'),
-    TagData(id: '142', label: 'Q37'),
+    TagData(id: '135', label: 'Promote'),
+    TagData(id: '136', label: 'Launch'),
+    TagData(id: '137', label: 'Release'),
+    TagData(id: '138', label: 'Update'),
+    TagData(id: '139', label: 'Feature'),
+    TagData(id: '140', label: 'Content'),
   ];
 
   // Storage for all rectangles organized by category
@@ -125,6 +126,33 @@ class RectangleService {
 
   // Get current category
   String get currentCategory => _currentCategory;
+
+  // Get maximum character length for current category
+  int get maxRectangleLength {
+    switch (_currentCategory) {
+      case 'Private':
+        return maxPrivateRectangleLength;
+      case 'Circle':
+        return maxCircleRectangleLength;
+      case 'Public':
+        return maxPublicRectangleLength;
+      default:
+        return maxPrivateRectangleLength;
+    }
+  }
+
+  // Get rectangles per page for current category
+  int get rectanglesPerPage {
+    switch (_currentCategory) {
+      case 'Private':
+      case 'Circle':
+        return 7;
+      case 'Public':
+        return 6; // Public category has 6 rectangles per page
+      default:
+        return 7;
+    }
+  }
 
   // Initialize default rectangles for all categories
   void _initializeDefaultRectangles() {
@@ -169,7 +197,7 @@ class RectangleService {
     }
   }
 
-  // Utility method to truncate rectangle labels to max length
+  // Utility method to truncate rectangle labels to max length for current category
   String _truncateLabel(String label) {
     return label.length > maxRectangleLength
         ? label.substring(0, maxRectangleLength)
@@ -194,13 +222,14 @@ class RectangleService {
   // Get rectangles for a specific page of current category
   List<TagData> getRectanglesForPage(int page) {
     final categoryRectangles = _categoryRectangles[_currentCategory] ?? [];
+    final perPage = rectanglesPerPage;
 
     if (page == 0) {
-      // Page 1: First 7 rectangles
-      return categoryRectangles.take(7).toList();
+      // Page 1: First set of rectangles
+      return categoryRectangles.take(perPage).toList();
     } else {
-      // Page 2: Next 7 rectangles
-      return categoryRectangles.skip(7).take(7).toList();
+      // Page 2: Next set of rectangles
+      return categoryRectangles.skip(perPage).take(perPage).toList();
     }
   }
 
