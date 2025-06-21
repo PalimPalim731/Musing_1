@@ -26,8 +26,7 @@ class TagPageToggleButton extends StatelessWidget {
     final iconSize =
         AppLayout.getIconSize(context, baseSize: isCompact ? 18.0 : 22.0);
     final borderWidth = isCompact ? 1.5 : 2.0;
-    final lineLength = isCompact ? 7.5 : 9.4; // Length of the pointing line
-    final lineWidth = isCompact ? 2.0 : 2.5; // Width of the line
+    final dotSize = isCompact ? 4.0 : 5.0; // Small, discreet dot size
 
     return Positioned(
       top: AppLayout.spacingS,
@@ -48,7 +47,8 @@ class TagPageToggleButton extends StatelessWidget {
                 // Light mode background only
                 color: Colors.white.withOpacity(0.9),
                 border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.3),
+                  color: theme.colorScheme.primary.withOpacity(
+                      0.3), // Make sure border uses primary color too
                   width: borderWidth,
                 ),
                 boxShadow: [
@@ -96,13 +96,17 @@ class TagPageToggleButton extends StatelessWidget {
               ),
             ),
 
-            // Downward pointing line
+            // Small spacing before dot
+            SizedBox(height: isCompact ? 3.0 : 4.0),
+
+            // Discreet dot indicator
             Container(
-              width: lineWidth,
-              height: lineLength,
+              width: dotSize,
+              height: dotSize,
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.4),
-                borderRadius: BorderRadius.circular(lineWidth / 2),
+                shape: BoxShape.circle,
+                color: theme.colorScheme.primary
+                    .withOpacity(0.6), // Same purple color as quick-tag dot
               ),
             ),
           ],

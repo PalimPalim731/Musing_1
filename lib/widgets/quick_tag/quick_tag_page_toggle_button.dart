@@ -26,8 +26,7 @@ class QuickTagPageToggleButton extends StatelessWidget {
     final iconSize =
         AppLayout.getIconSize(context, baseSize: isCompact ? 18.0 : 22.0);
     final borderWidth = isCompact ? 1.5 : 2.0;
-    final lineLength = isCompact ? 7.5 : 9.4; // Length of the pointing line
-    final lineWidth = isCompact ? 2.0 : 2.5; // Width of the line
+    final dotSize = isCompact ? 4.0 : 5.0; // Small, discreet dot size
 
     return Positioned(
       top: AppLayout.spacingS,
@@ -101,14 +100,17 @@ class QuickTagPageToggleButton extends StatelessWidget {
               ),
             ),
 
-            // Rightward pointing line
+            // Small spacing before dot
+            SizedBox(width: isCompact ? 3.0 : 4.0),
+
+            // Discreet dot indicator
             Container(
-              width: lineLength,
-              height: lineWidth,
+              width: dotSize,
+              height: dotSize,
               decoration: BoxDecoration(
-                color: theme.colorScheme.secondary
-                    .withOpacity(0.4), // Use secondary color for quick-tags
-                borderRadius: BorderRadius.circular(lineWidth / 2),
+                shape: BoxShape.circle,
+                color: theme.colorScheme.primary
+                    .withOpacity(0.6), // Increased opacity to show purple color
               ),
             ),
           ],
