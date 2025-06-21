@@ -140,9 +140,20 @@ class TagChip extends StatelessWidget {
   }
 
   /// Build text for quick-tags (rectangle-style with special formatting)
+  /// Public category quick-tags use regular text format instead of special stacked layout
   Widget _buildQuickTagText(String text, Color color, double baseFontSize) {
     if (text.isEmpty) return const SizedBox.shrink();
 
+    // Check if this is a Public category quick-tag based on ID range (129-140)
+    final tagId = int.tryParse(tag.id) ?? 0;
+    final isPublicQuickTag = tagId >= 129 && tagId <= 140;
+
+    // Public category quick-tags use regular text layout
+    if (isPublicQuickTag) {
+      return _buildRegularTagText(text, color, baseFontSize);
+    }
+
+    // Private and Circle category quick-tags use special stacked layout
     final smallFontSize = baseFontSize * 0.6;
 
     // First character (normal size, capitalized)
