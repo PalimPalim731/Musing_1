@@ -114,8 +114,11 @@ class TagChip extends StatelessWidget {
     double horizontalPadding,
     double verticalPadding,
   ) {
+    // Reduce horizontal spacing for quick-tags by 50%
+    final rightMargin = isQuickTag ? 3.0 : 6.0; // 3.0 is 50% of 6.0
+
     return Container(
-      margin: const EdgeInsets.only(right: 6.0, bottom: 6.0),
+      margin: EdgeInsets.only(right: rightMargin, bottom: 6.0),
       child: Material(
         color: Colors.transparent,
         child: Container(

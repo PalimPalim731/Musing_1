@@ -78,20 +78,8 @@ class NoteEntryScreen extends StatefulWidget {
 
 class _NoteEntryScreenState extends State<NoteEntryScreen> {
   // Tag limit constants
-  static const int maxRegularTags = 3; // Same for all categories
-
-  // Category-specific quick-tag limits
-  // Private: 1 quick-tag (for focused, single-concept notes)
-  // Circle: 7 quick-tags (matches the 7 rectangles available)
-  // Public: 3 quick-tags (balanced for broader sharing)
-  static const Map<String, int> maxQuickTagsByCategory = {
-    'Private': 1, // Private category: maximum 1 quick-tag
-    'Circle': 7, // Circle category: maximum 7 quick-tags
-    'Public': 3, // Public category: maximum 3 quick-tags
-  };
-
-  // Get quick-tag limit for current category
-  int get maxQuickTags => maxQuickTagsByCategory[_selectedCategory] ?? 3;
+  static const int maxQuickTags = 3;
+  static const int maxRegularTags = 3;
 
   // Active category selection
   String _selectedCategory = 'Private';
@@ -121,11 +109,6 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   TextEditingController get _noteController => _currentNoteState.controller;
   List<TagData> get _appliedQuickTags => _currentNoteState.appliedQuickTags;
   List<TagData> get _appliedRegularTags => _currentNoteState.appliedRegularTags;
-
-  // Dynamic limit checking for current category
-  bool get _isQuickTagLimitReached => _appliedQuickTags.length >= maxQuickTags;
-  bool get _isRegularTagLimitReached =>
-      _appliedRegularTags.length >= maxRegularTags;
 
   @override
   void initState() {
@@ -381,10 +364,9 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     final newState = _currentNoteState;
     if (newState.hasContent) {
       debugPrint(
-          'Loaded $category note with ${newState.controller.text.length} characters and ${newState.totalTagCount} tags (Quick-tag limit: $maxQuickTags, Regular-tag limit: $maxRegularTags)');
+          'Loaded $category note with ${newState.controller.text.length} characters and ${newState.totalTagCount} tags');
     } else {
-      debugPrint(
-          'Loaded empty $category note space (Quick-tag limit: $maxQuickTags, Regular-tag limit: $maxRegularTags)');
+      debugPrint('Loaded empty $category note space');
     }
   }
 
@@ -409,10 +391,12 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
 
   // Handle tag dropped onto the note with limit validation
   void _handleTagAdded(TagData tag) {
+    final currentState = _currentNoteState;
+
     if (_isQuickTag(tag)) {
       // Check if tag is already applied or limit is reached
       if (_appliedQuickTags.any((t) => t.id == tag.id) ||
-          _isQuickTagLimitReached) {
+          currentState.isQuickTagLimitReached) {
         return;
       }
 
@@ -426,7 +410,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     } else {
       // Check if tag is already applied or limit is reached
       if (_appliedRegularTags.any((t) => t.id == tag.id) ||
-          _isRegularTagLimitReached) {
+          currentState.isRegularTagLimitReached) {
         return;
       }
 
@@ -486,8 +470,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     // Validate tag limits before saving (silent validation)
     if (_appliedQuickTags.length > maxQuickTags ||
         _appliedRegularTags.length > maxRegularTags) {
-      debugPrint(
-          'Tag limits exceeded - save aborted. Quick-tags: ${_appliedQuickTags.length}/$maxQuickTags, Regular-tags: ${_appliedRegularTags.length}/$maxRegularTags');
+      debugPrint('Tag limits exceeded - save aborted');
       return;
     }
 

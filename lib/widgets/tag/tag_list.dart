@@ -42,11 +42,11 @@ class TagList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Quick-tags row (rectangle-based tags)
+        // Quick-tags row (rectangle-based tags) with reduced spacing
         if (quickTags.isNotEmpty) ...[
           Wrap(
-            spacing: 4.0,
-            runSpacing: 4.0,
+            spacing: 2.0, // Reduced from 4.0 to 2.0 (50% reduction)
+            runSpacing: 4.0, // Keep vertical spacing the same
             children: quickTags
                 .map((tag) => TagChip(
                       tag: tag,
@@ -64,10 +64,10 @@ class TagList extends StatelessWidget {
           if (regularTags.isNotEmpty) SizedBox(height: isSmall ? 6.0 : 8.0),
         ],
 
-        // Regular-tags row(s) (sidebar tags)
+        // Regular-tags row(s) (sidebar tags) with normal spacing
         if (regularTags.isNotEmpty)
           Wrap(
-            spacing: 4.0,
+            spacing: 4.0, // Keep normal spacing for regular tags
             runSpacing: 4.0,
             children: regularTags
                 .map((tag) => TagChip(
