@@ -7,7 +7,7 @@ import '../../services/rectangle_service.dart';
 import 'rectangle_item.dart';
 
 /// Bar containing rectangles positioned above the note area
-/// Private/Circle: 7 rectangles horizontally
+/// Private/Circle: 7 rectangles horizontally with spacing
 /// Public: 6 rectangles in 2x3 grid
 class RectangleBar extends StatefulWidget {
   final bool isCompact;
@@ -54,7 +54,6 @@ class _RectangleBarState extends State<RectangleBar> {
     // Calculate dimensions
     final availableHeight = AppLayout.selectorHeight + (AppLayout.spacingS * 2);
     final spacing = widget.isCompact ? AppLayout.spacingXS : AppLayout.spacingS;
-    final isCircleCategory = widget.selectedCategory == 'Circle';
     final isPublicCategory = widget.selectedCategory == 'Public';
 
     return Container(
@@ -71,12 +70,8 @@ class _RectangleBarState extends State<RectangleBar> {
           if (isPublicCategory) {
             // Public category: 6 horizontally-long rectangles in 2x3 grid
             return _buildGridRectangles(constraints, rectangleHeight, spacing);
-          } else if (isCircleCategory) {
-            // Circle category: joined rectangles with no spacing
-            return _buildJoinedRectangles(
-                context, constraints, rectangleHeight);
           } else {
-            // Private category: separated rectangles with spacing
+            // Private and Circle categories: separated rectangles with spacing
             return _buildSeparatedRectangles(
                 constraints, rectangleHeight, spacing);
           }
@@ -160,69 +155,6 @@ class _RectangleBarState extends State<RectangleBar> {
     );
   }
 
-  Widget _buildJoinedRectangles(BuildContext context,
-      BoxConstraints constraints, double rectangleHeight) {
-    final theme = Theme.of(context);
-
-    // For joined rectangles, use all available width
-    final totalWidth = constraints.maxWidth;
-    final rectangleWidth = totalWidth / _rectangles.length;
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppLayout.buttonRadius),
-        // Use much lighter shadow to match Private category appearance
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05), // Reduced from 0.1 to 0.05
-            blurRadius: 2, // Reduced from 4 to 2
-            offset: const Offset(0, 1), // Reduced from (0, 2) to (0, 1)
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppLayout.buttonRadius),
-        child: Row(
-          children: List.generate(_rectangles.length, (index) {
-            final rectangle = _rectangles[index];
-            final isFirst = index == 0;
-            final isLast = index == _rectangles.length - 1;
-
-            return Container(
-              width: rectangleWidth,
-              height: rectangleHeight,
-              decoration: BoxDecoration(
-                // Use much lighter divider lines to match Private category
-                border: Border(
-                  right: isLast
-                      ? BorderSide.none
-                      : BorderSide(
-                          color: theme.colorScheme.primary
-                              .withOpacity(0.15), // Reduced from 0.3 to 0.15
-                          width: 1.0, // Reduced from 1.5 to 1.0
-                        ),
-                ),
-              ),
-              child: RectangleItem(
-                width: rectangleWidth,
-                height: rectangleHeight,
-                rectangle: rectangle,
-                onTap: () => _handleRectangleTap(rectangle),
-                onRename: (newLabel) =>
-                    _handleRectangleRename(rectangle, newLabel),
-                isCompact: widget.isCompact,
-                isJoined: true, // New parameter to indicate joined style
-                isFirst: isFirst,
-                isLast: isLast,
-                maxCharacters: 3, // Circle category uses 3-character limit
-              ),
-            );
-          }),
-        ),
-      ),
-    );
-  }
-
   Widget _buildSeparatedRectangles(
       BoxConstraints constraints, double rectangleHeight, double spacing) {
     // Calculate rectangle dimensions for separated layout
@@ -250,7 +182,8 @@ class _RectangleBarState extends State<RectangleBar> {
                 _handleRectangleRename(_rectangles[rectangleIndex], newLabel),
             isCompact: widget.isCompact,
             isJoined: false, // Separated style
-            maxCharacters: 3, // Private category uses 3-character limit
+            maxCharacters:
+                3, // Both Private and Circle categories use 3-character limit
           );
         } else {
           return SizedBox(width: spacing);
