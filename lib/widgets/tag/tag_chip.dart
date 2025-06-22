@@ -117,8 +117,13 @@ class TagChip extends StatelessWidget {
     // Reduce horizontal spacing for all tags by 50%
     final rightMargin = 3.0; // Reduced from 6.0 to 3.0 for all tags
 
+    // Reduce bottom margin for quick-tags when they're in a mixed tag layout
+    // This helps reduce the vertical gap between quick-tag and regular-tag lines
+    final bottomMargin =
+        isQuickTag ? 3.0 : 6.0; // Quick-tags get reduced bottom margin
+
     return Container(
-      margin: EdgeInsets.only(right: rightMargin, bottom: 6.0),
+      margin: EdgeInsets.only(right: rightMargin, bottom: bottomMargin),
       child: Material(
         color: Colors.transparent,
         child: Container(
