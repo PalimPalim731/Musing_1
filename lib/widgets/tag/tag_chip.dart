@@ -12,6 +12,7 @@ class TagChip extends StatelessWidget {
   final bool isSmall;
   final bool isQuickTag; // Parameter to distinguish quick-tags
   final bool isDraggable; // Parameter to control drag behavior
+  final String? category; // Add category parameter for spacing control
 
   const TagChip({
     super.key,
@@ -20,6 +21,7 @@ class TagChip extends StatelessWidget {
     this.isSmall = false,
     this.isQuickTag = false, // Default to regular tag
     this.isDraggable = true, // Default to draggable when applied to note
+    this.category, // Optional category for spacing optimization
   });
 
   @override
@@ -32,8 +34,14 @@ class TagChip extends StatelessWidget {
         : theme.colorScheme.primary; // Primary color for regular tags
 
     final fontSize = isSmall ? 10.0 : 12.0;
-    final horizontalPadding =
-        isSmall ? 8.0 : 10.0; // Slightly more padding without 'x'
+
+    // Reduce padding for Circle category quick-tags to save space
+    double horizontalPadding = isSmall ? 8.0 : 10.0;
+    if (isQuickTag && category == 'Circle') {
+      horizontalPadding =
+          isSmall ? 6.0 : 7.0; // Reduced padding for Circle quick-tags
+    }
+
     final verticalPadding = isSmall ? 4.0 : 6.0;
 
     // If this tag is applied to a note and draggable, wrap it in Draggable
@@ -114,8 +122,12 @@ class TagChip extends StatelessWidget {
     double horizontalPadding,
     double verticalPadding,
   ) {
-    // Reduce horizontal spacing for all tags by 50%
-    final rightMargin = 3.0; // Reduced from 6.0 to 3.0 for all tags
+    // Category-specific margin optimization for Circle quick-tags
+    double rightMargin = 3.0; // Default margin
+    if (isQuickTag && category == 'Circle') {
+      rightMargin =
+          1.5; // Tighter right margin for Circle quick-tags to fit 7 per line
+    }
 
     // Reduce bottom margin for quick-tags when they're in a mixed tag layout
     // This helps reduce the vertical gap between quick-tag and regular-tag lines
@@ -187,7 +199,8 @@ class TagChip extends StatelessWidget {
 
         // Remaining characters (stacked vertically if present)
         if (remainingChars.isNotEmpty) ...[
-          const SizedBox(width: 1), // Small gap between first char and stack
+          // Reduce gap between first char and stack for Circle category
+          SizedBox(width: category == 'Circle' ? 0.5 : 1.0),
           Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

@@ -11,6 +11,7 @@ class TagList extends StatelessWidget {
   final Function(TagData)? onRemoveTag;
   final bool isSmall;
   final bool isDraggable; // Parameter to control drag behavior
+  final String? category; // Add category parameter for spacing control
 
   const TagList({
     super.key,
@@ -19,6 +20,7 @@ class TagList extends StatelessWidget {
     this.onRemoveTag,
     this.isSmall = false,
     this.isDraggable = true, // Default to draggable for applied tags
+    this.category, // Optional category for spacing optimization
   });
 
   // Legacy constructor for backward compatibility
@@ -30,6 +32,7 @@ class TagList extends StatelessWidget {
     bool isScrollable = false,
     bool allowMultiRow = true,
     this.isDraggable = true,
+    this.category,
   })  : quickTags = const [],
         regularTags = tags;
 
@@ -39,13 +42,20 @@ class TagList extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // Determine spacing based on category for quick-tags
+    double quickTagSpacing = 2.0; // Default spacing
+    if (category == 'Circle') {
+      quickTagSpacing =
+          2.8; // Increased spacing for Circle category to fit exactly 7 tags per line
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Quick-tags row (rectangle-based tags) with reduced spacing
+        // Quick-tags row (rectangle-based tags) with category-specific spacing
         if (quickTags.isNotEmpty) ...[
           Wrap(
-            spacing: 2.0, // Reduced from 4.0 to 2.0 (50% reduction)
+            spacing: quickTagSpacing, // Use category-specific spacing
             runSpacing: 4.0, // Keep vertical spacing the same
             children: quickTags
                 .map((tag) => TagChip(
@@ -56,6 +66,7 @@ class TagList extends StatelessWidget {
                       isSmall: isSmall,
                       isQuickTag: true, // Special styling for quick-tags
                       isDraggable: isDraggable, // Pass drag control
+                      category: category, // Pass category for spacing control
                     ))
                 .toList(),
           ),
@@ -78,6 +89,7 @@ class TagList extends StatelessWidget {
                       isSmall: isSmall,
                       isQuickTag: false, // Regular styling
                       isDraggable: isDraggable, // Pass drag control
+                      category: category, // Pass category for consistency
                     ))
                 .toList(),
           ),

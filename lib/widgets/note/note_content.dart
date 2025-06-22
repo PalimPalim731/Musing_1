@@ -86,6 +86,8 @@ class NoteContent extends StatelessWidget {
             appliedRegularTags: appliedRegularTags,
             onTagAdded: onTagAdded,
             onTagRemoved: onTagRemoved,
+            category:
+                selectedCategory, // Pass the selected category for spacing optimization
             onDelete: onDelete,
             onUndo: onUndo,
             onFormat: onFormat,

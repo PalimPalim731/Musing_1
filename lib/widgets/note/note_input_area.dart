@@ -16,6 +16,7 @@ class NoteInputArea extends StatefulWidget {
   final List<TagData> appliedRegularTags; // Sidebar tags (longer names)
   final Function(TagData)? onTagAdded;
   final Function(TagData)? onTagRemoved;
+  final String? category; // Add category parameter for spacing optimization
 
   // Action callbacks
   final VoidCallback? onDelete;
@@ -33,6 +34,7 @@ class NoteInputArea extends StatefulWidget {
     this.appliedRegularTags = const [],
     this.onTagAdded,
     this.onTagRemoved,
+    this.category, // Optional category for spacing optimization
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -49,6 +51,7 @@ class NoteInputArea extends StatefulWidget {
     List<TagData> appliedTags = const [],
     this.onTagAdded,
     this.onTagRemoved,
+    this.category,
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -182,7 +185,7 @@ class _NoteInputAreaState extends State<NoteInputArea> {
                 ),
               ),
 
-              // Display applied tags at the bottom - separated by type
+              // Display applied tags at the bottom - separated by type with category-specific spacing
               if (widget.appliedQuickTags.isNotEmpty ||
                   widget.appliedRegularTags.isNotEmpty)
                 Container(
@@ -195,6 +198,8 @@ class _NoteInputAreaState extends State<NoteInputArea> {
                     onRemoveTag: widget.onTagRemoved,
                     isSmall: true,
                     isDraggable: true, // Enable drag-to-remove for applied tags
+                    category:
+                        widget.category, // Pass category for optimized spacing
                   ),
                 ),
 
