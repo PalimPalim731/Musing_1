@@ -60,8 +60,8 @@ class TagList extends StatelessWidget {
                 .toList(),
           ),
 
-          // Add spacing between quick-tags and regular-tags if both exist
-          if (regularTags.isNotEmpty) SizedBox(height: isSmall ? 6.0 : 8.0),
+          // Add spacing between quick-tags and regular-tags if both exist (reduced by 50%)
+          if (regularTags.isNotEmpty) SizedBox(height: isSmall ? 3.0 : 4.0),
         ],
 
         // Regular-tags row(s) (sidebar tags) with normal spacing
