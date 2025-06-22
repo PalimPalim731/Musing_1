@@ -5,9 +5,10 @@ import '../../models/quick_tag.dart';
 import '../../config/constants/layout.dart';
 
 /// Displays a quick tag as a chip, for showing applied quick tags on notes
+/// Note: This component is legacy - the unified TagChip should be used instead
 class QuickTagChip extends StatelessWidget {
   final QuickTagData quickTag;
-  final VoidCallback? onRemove;
+  final VoidCallback? onRemove; // Keep for backward compatibility
   final bool isSmall;
 
   const QuickTagChip({
@@ -23,49 +24,25 @@ class QuickTagChip extends StatelessWidget {
     final tagColor = theme.colorScheme
         .secondary; // Use secondary color to differentiate from regular tags
     final fontSize = isSmall ? 10.0 : 12.0;
-    final horizontalPadding = isSmall ? 6.0 : 8.0;
+    final horizontalPadding = isSmall ? 8.0 : 10.0; // More padding without 'x'
     final verticalPadding = isSmall ? 4.0 : 6.0;
-    final iconSize = isSmall ? 14.0 : 16.0;
 
     return Container(
       margin: const EdgeInsets.only(right: 6.0, bottom: 6.0),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: horizontalPadding,
+          vertical: verticalPadding,
+        ),
+        decoration: BoxDecoration(
+          color: tagColor.withOpacity(0.15),
           borderRadius: BorderRadius.circular(16.0),
-          onTap: onRemove,
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: horizontalPadding,
-              vertical: verticalPadding,
-            ),
-            decoration: BoxDecoration(
-              color: tagColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(16.0),
-              border: Border.all(
-                color: tagColor.withOpacity(0.3),
-                width: 1.0,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildFormattedText(quickTag.label, tagColor, fontSize),
-                if (onRemove != null) ...[
-                  const SizedBox(width: 2),
-                  GestureDetector(
-                    onTap: onRemove,
-                    child: Icon(
-                      Icons.close,
-                      size: iconSize,
-                      color: tagColor.withOpacity(0.6),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+          border: Border.all(
+            color: tagColor.withOpacity(0.3),
+            width: 1.0,
           ),
         ),
+        child: _buildFormattedText(quickTag.label, tagColor, fontSize),
       ),
     );
   }

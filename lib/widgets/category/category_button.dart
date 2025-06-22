@@ -4,12 +4,11 @@ import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 import '../../config/theme/app_theme.dart';
 
-/// Individual category button
+/// Individual category button - Light mode only
 class CategoryButton extends StatelessWidget {
   final String label;
   final bool isSelected;
-  final bool
-      isActiveForTags; // New parameter to indicate if this category's tags are active
+  final bool isActiveForTags; // Indicates if this category's tags are active
   final VoidCallback onTap;
   final double height;
   final EdgeInsets? margin;
@@ -19,7 +18,7 @@ class CategoryButton extends StatelessWidget {
     super.key,
     required this.label,
     required this.isSelected,
-    this.isActiveForTags = false, // Default to false
+    this.isActiveForTags = false,
     required this.onTap,
     required this.height,
     this.margin,

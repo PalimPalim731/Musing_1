@@ -10,6 +10,8 @@ class TagList extends StatelessWidget {
   final List<TagData> regularTags; // Sidebar tags (longer names)
   final Function(TagData)? onRemoveTag;
   final bool isSmall;
+  final bool isDraggable; // Parameter to control drag behavior
+  final String? category; // Add category parameter for spacing control
 
   const TagList({
     super.key,
@@ -17,6 +19,8 @@ class TagList extends StatelessWidget {
     this.regularTags = const [],
     this.onRemoveTag,
     this.isSmall = false,
+    this.isDraggable = true, // Default to draggable for applied tags
+    this.category, // Optional category for spacing optimization
   });
 
   // Legacy constructor for backward compatibility
@@ -27,6 +31,8 @@ class TagList extends StatelessWidget {
     this.isSmall = false,
     bool isScrollable = false,
     bool allowMultiRow = true,
+    this.isDraggable = true,
+    this.category,
   })  : quickTags = const [],
         regularTags = tags;
 
@@ -36,41 +42,54 @@ class TagList extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // Determine spacing based on category for quick-tags
+    double quickTagSpacing = 2.0; // Default spacing
+    if (category == 'Circle') {
+      quickTagSpacing =
+          2.8; // Increased spacing for Circle category to fit exactly 7 tags per line
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Quick-tags row (rectangle-based tags)
+        // Quick-tags row (rectangle-based tags) with category-specific spacing
         if (quickTags.isNotEmpty) ...[
           Wrap(
-            spacing: 4.0,
-            runSpacing: 4.0,
+            spacing: quickTagSpacing, // Use category-specific spacing
+            runSpacing: 4.0, // Keep vertical spacing the same
             children: quickTags
                 .map((tag) => TagChip(
                       tag: tag,
-                      onRemove:
-                          onRemoveTag != null ? () => onRemoveTag!(tag) : null,
+                      onRemove: onRemoveTag != null
+                          ? () => onRemoveTag!(tag)
+                          : null, // Internal callback for drag functionality
                       isSmall: isSmall,
                       isQuickTag: true, // Special styling for quick-tags
+                      isDraggable: isDraggable, // Pass drag control
+                      category: category, // Pass category for spacing control
                     ))
                 .toList(),
           ),
 
-          // Add spacing between quick-tags and regular-tags if both exist
-          if (regularTags.isNotEmpty) SizedBox(height: isSmall ? 6.0 : 8.0),
+          // Add spacing between quick-tags and regular-tags if both exist (reduced by 50%)
+          if (regularTags.isNotEmpty) SizedBox(height: isSmall ? 3.0 : 4.0),
         ],
 
-        // Regular-tags row(s) (sidebar tags)
+        // Regular-tags row(s) (sidebar tags) with normal spacing
         if (regularTags.isNotEmpty)
           Wrap(
-            spacing: 4.0,
+            spacing: 4.0, // Keep normal spacing for regular tags
             runSpacing: 4.0,
             children: regularTags
                 .map((tag) => TagChip(
                       tag: tag,
-                      onRemove:
-                          onRemoveTag != null ? () => onRemoveTag!(tag) : null,
+                      onRemove: onRemoveTag != null
+                          ? () => onRemoveTag!(tag)
+                          : null, // Internal callback for drag functionality
                       isSmall: isSmall,
                       isQuickTag: false, // Regular styling
+                      isDraggable: isDraggable, // Pass drag control
+                      category: category, // Pass category for consistency
                     ))
                 .toList(),
           ),

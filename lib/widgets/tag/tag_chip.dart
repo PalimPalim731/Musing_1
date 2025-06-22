@@ -8,9 +8,11 @@ import '../../utils/text_utils.dart';
 /// Displays a tag as a chip, for showing applied tags on notes
 class TagChip extends StatelessWidget {
   final TagData tag;
-  final VoidCallback? onRemove;
+  final VoidCallback? onRemove; // Keep for internal drag functionality
   final bool isSmall;
-  final bool isQuickTag; // New parameter to distinguish quick-tags
+  final bool isQuickTag; // Parameter to distinguish quick-tags
+  final bool isDraggable; // Parameter to control drag behavior
+  final String? category; // Add category parameter for spacing control
 
   const TagChip({
     super.key,
@@ -18,6 +20,8 @@ class TagChip extends StatelessWidget {
     this.onRemove,
     this.isSmall = false,
     this.isQuickTag = false, // Default to regular tag
+    this.isDraggable = true, // Default to draggable when applied to note
+    this.category, // Optional category for spacing optimization
   });
 
   @override
@@ -30,61 +34,146 @@ class TagChip extends StatelessWidget {
         : theme.colorScheme.primary; // Primary color for regular tags
 
     final fontSize = isSmall ? 10.0 : 12.0;
-    final horizontalPadding = isSmall ? 6.0 : 8.0;
+
+    // Reduce padding for Circle category quick-tags to save space
+    double horizontalPadding = isSmall ? 8.0 : 10.0;
+    if (isQuickTag && category == 'Circle') {
+      horizontalPadding =
+          isSmall ? 6.0 : 7.0; // Reduced padding for Circle quick-tags
+    }
+
     final verticalPadding = isSmall ? 4.0 : 6.0;
-    final iconSize = isSmall ? 14.0 : 16.0;
 
-    return Container(
-      margin: const EdgeInsets.only(right: 6.0, bottom: 6.0),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16.0),
-          onTap: onRemove,
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: horizontalPadding,
-              vertical: verticalPadding,
-            ),
-            decoration: BoxDecoration(
-              color: tagColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(16.0),
-              border: Border.all(
-                color: tagColor.withOpacity(0.3),
-                width: 1.0,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Display the tag text with special formatting for quick-tags
-                isQuickTag
-                    ? _buildQuickTagText(tag.label, tagColor, fontSize)
-                    : _buildRegularTagText(tag.label, tagColor, fontSize),
+    // If this tag is applied to a note and draggable, wrap it in Draggable
+    if (onRemove != null && isDraggable) {
+      return _buildDraggableTagChip(context, theme, tagColor, fontSize,
+          horizontalPadding, verticalPadding);
+    } else {
+      return _buildStaticTagChip(context, theme, tagColor, fontSize,
+          horizontalPadding, verticalPadding);
+    }
+  }
 
-                if (onRemove != null) ...[
-                  const SizedBox(width: 2),
-                  GestureDetector(
-                    onTap: onRemove,
-                    child: Icon(
-                      Icons.close,
-                      size: iconSize,
-                      color: tagColor.withOpacity(0.6),
-                    ),
-                  ),
-                ],
-              ],
+  Widget _buildDraggableTagChip(
+    BuildContext context,
+    ThemeData theme,
+    Color tagColor,
+    double fontSize,
+    double horizontalPadding,
+    double verticalPadding,
+  ) {
+    return Draggable<TagRemovalData>(
+      // Pass tag removal data to identify which tag is being dragged for removal
+      data: TagRemovalData(tag: tag, onRemove: onRemove!),
+
+      // What appears during drag - slightly larger and more prominent
+      feedback: Material(
+        elevation: 8.0,
+        borderRadius: BorderRadius.circular(18.0),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding + 2,
+            vertical: verticalPadding + 1,
+          ),
+          decoration: BoxDecoration(
+            color: tagColor.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(18.0),
+            border: Border.all(
+              color: tagColor.withOpacity(0.5),
+              width: 1.5,
             ),
           ),
+          child: isQuickTag
+              ? _buildQuickTagText(tag.label, Colors.white, fontSize + 1)
+              : _buildRegularTagText(tag.label, Colors.white, fontSize + 1),
+        ),
+      ),
+
+      // What remains in place during drag - reduced opacity
+      childWhenDragging: Opacity(
+        opacity: 0.3,
+        child: _buildTagChipContent(context, theme, tagColor, fontSize,
+            horizontalPadding, verticalPadding),
+      ),
+
+      // Normal appearance when not dragging
+      child: _buildTagChipContent(context, theme, tagColor, fontSize,
+          horizontalPadding, verticalPadding),
+    );
+  }
+
+  Widget _buildStaticTagChip(
+    BuildContext context,
+    ThemeData theme,
+    Color tagColor,
+    double fontSize,
+    double horizontalPadding,
+    double verticalPadding,
+  ) {
+    return _buildTagChipContent(
+        context, theme, tagColor, fontSize, horizontalPadding, verticalPadding);
+  }
+
+  Widget _buildTagChipContent(
+    BuildContext context,
+    ThemeData theme,
+    Color tagColor,
+    double fontSize,
+    double horizontalPadding,
+    double verticalPadding,
+  ) {
+    // Category-specific margin optimization for Circle quick-tags
+    double rightMargin = 3.0; // Default margin
+    if (isQuickTag && category == 'Circle') {
+      rightMargin =
+          1.5; // Tighter right margin for Circle quick-tags to fit 7 per line
+    }
+
+    // Reduce bottom margin for quick-tags when they're in a mixed tag layout
+    // This helps reduce the vertical gap between quick-tag and regular-tag lines
+    final bottomMargin =
+        isQuickTag ? 3.0 : 6.0; // Quick-tags get reduced bottom margin
+
+    return Container(
+      margin: EdgeInsets.only(right: rightMargin, bottom: bottomMargin),
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
+          ),
+          decoration: BoxDecoration(
+            color: tagColor.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(16.0),
+            border: Border.all(
+              color: tagColor.withOpacity(0.3),
+              width: 1.0,
+            ),
+          ),
+          child: isQuickTag
+              ? _buildQuickTagText(tag.label, tagColor, fontSize)
+              : _buildRegularTagText(tag.label, tagColor, fontSize),
         ),
       ),
     );
   }
 
   /// Build text for quick-tags (rectangle-style with special formatting)
+  /// Public category quick-tags use regular text format instead of special stacked layout
   Widget _buildQuickTagText(String text, Color color, double baseFontSize) {
     if (text.isEmpty) return const SizedBox.shrink();
 
+    // Check if this is a Public category quick-tag based on ID range (129-140)
+    final tagId = int.tryParse(tag.id) ?? 0;
+    final isPublicQuickTag = tagId >= 129 && tagId <= 140;
+
+    // Public category quick-tags use regular text layout
+    if (isPublicQuickTag) {
+      return _buildRegularTagText(text, color, baseFontSize);
+    }
+
+    // Private and Circle category quick-tags use special stacked layout
     final smallFontSize = baseFontSize * 0.6;
 
     // First character (normal size, capitalized)
@@ -110,7 +199,8 @@ class TagChip extends StatelessWidget {
 
         // Remaining characters (stacked vertically if present)
         if (remainingChars.isNotEmpty) ...[
-          const SizedBox(width: 1), // Small gap between first char and stack
+          // Reduce gap between first char and stack for Circle category
+          SizedBox(width: category == 'Circle' ? 0.5 : 1.0),
           Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,4 +246,15 @@ class TagChip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Data class for tag removal during drag operations
+class TagRemovalData extends Object {
+  final TagData tag;
+  final VoidCallback onRemove;
+
+  const TagRemovalData({
+    required this.tag,
+    required this.onRemove,
+  });
 }

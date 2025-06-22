@@ -1,16 +1,16 @@
-// widgets/tag/tag_page_toggle_button.dart
+// widgets/quick_tag/quick_tag_page_toggle_button.dart
 
 import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 
-/// Tag page toggle button for switching between first and second tag pages
+/// Quick-tag page toggle button for switching between first and second quick-tag pages
 /// Light mode only
-class TagPageToggleButton extends StatelessWidget {
+class QuickTagPageToggleButton extends StatelessWidget {
   final VoidCallback onToggle;
   final int currentPage;
   final bool isCompact;
 
-  const TagPageToggleButton({
+  const QuickTagPageToggleButton({
     super.key,
     required this.onToggle,
     required this.currentPage,
@@ -30,12 +30,13 @@ class TagPageToggleButton extends StatelessWidget {
 
     return Positioned(
       top: AppLayout.spacingS,
-      right: AppLayout.spacingS,
+      left: AppLayout.spacingS,
       child: Semantics(
-        label:
-            currentPage == 0 ? 'Switch to tag page 2' : 'Switch to tag page 1',
+        label: currentPage == 0
+            ? 'Switch to quick-tag page 2'
+            : 'Switch to quick-tag page 1',
         button: true,
-        child: Column(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             // The circular toggle button
@@ -47,8 +48,8 @@ class TagPageToggleButton extends StatelessWidget {
                 // Light mode background only
                 color: Colors.white.withOpacity(0.9),
                 border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(
-                      0.3), // Make sure border uses primary color too
+                  color: theme.colorScheme.secondary
+                      .withOpacity(0.3), // Use secondary color for quick-tags
                   width: borderWidth,
                 ),
                 boxShadow: [
@@ -64,13 +65,15 @@ class TagPageToggleButton extends StatelessWidget {
                 shape: const CircleBorder(),
                 child: Tooltip(
                   message: currentPage == 0
-                      ? 'Switch to tag page 2'
-                      : 'Switch to tag page 1',
+                      ? 'Switch to quick-tag page 2'
+                      : 'Switch to quick-tag page 1',
                   child: InkWell(
                     onTap: onToggle,
                     customBorder: const CircleBorder(),
-                    splashColor: theme.colorScheme.primary.withOpacity(0.2),
-                    highlightColor: theme.colorScheme.primary.withOpacity(0.1),
+                    splashColor: theme.colorScheme.secondary
+                        .withOpacity(0.2), // Use secondary color for quick-tags
+                    highlightColor:
+                        theme.colorScheme.secondary.withOpacity(0.1),
                     child: Center(
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 300),
@@ -84,7 +87,8 @@ class TagPageToggleButton extends StatelessWidget {
                           key: ValueKey(currentPage),
                           '${currentPage + 1}',
                           style: TextStyle(
-                            color: theme.colorScheme.primary,
+                            color: theme.colorScheme
+                                .secondary, // Use secondary color for quick-tags
                             fontSize: iconSize * 0.9,
                             fontWeight: FontWeight.bold,
                           ),
@@ -97,7 +101,7 @@ class TagPageToggleButton extends StatelessWidget {
             ),
 
             // Small spacing before dot
-            SizedBox(height: isCompact ? 3.0 : 4.0),
+            SizedBox(width: isCompact ? 3.0 : 4.0),
 
             // Discreet dot indicator
             Container(
@@ -106,7 +110,7 @@ class TagPageToggleButton extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: theme.colorScheme.primary
-                    .withOpacity(0.6), // Same purple color as quick-tag dot
+                    .withOpacity(0.6), // Increased opacity to show purple color
               ),
             ),
           ],

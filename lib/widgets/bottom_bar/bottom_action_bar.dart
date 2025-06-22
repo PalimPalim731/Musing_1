@@ -3,7 +3,8 @@
 import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 
-/// Bottom action bar with Settings, Explore, and Profile buttons
+/// Bottom action bar with Settings, For You, and Profile buttons
+/// Light mode only
 class BottomActionBar extends StatelessWidget {
   final VoidCallback onSettingsPressed;
   final VoidCallback onExplorePressed;
@@ -63,10 +64,10 @@ class BottomActionBar extends StatelessWidget {
           // Left spacing
           SizedBox(width: buttonSpacing),
 
-          // Explore button - takes up remaining space
+          // For You button - takes up remaining space
           Expanded(
             child: Semantics(
-              label: 'Explore notes',
+              label: 'For You',
               button: true,
               child: Container(
                 height: actionBarHeight,
@@ -91,7 +92,7 @@ class BottomActionBar extends StatelessWidget {
                     highlightColor: Colors.white.withOpacity(0.2),
                     child: Center(
                       child: Text(
-                        'Explore',
+                        'For You',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: fontSize,
@@ -137,9 +138,8 @@ class BottomActionBar extends StatelessWidget {
     required double borderWidth,
   }) {
     final theme = Theme.of(context);
-    final backgroundColor = theme.brightness == Brightness.light
-        ? Colors.white
-        : const Color(0xFF2A2A2A);
+    // Light mode background color only
+    const backgroundColor = Colors.white;
 
     return Semantics(
       label: tooltip,
