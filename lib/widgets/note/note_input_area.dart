@@ -6,8 +6,9 @@ import '../../models/tag.dart';
 import '../tag/tag_list.dart';
 import '../tag/tag_chip.dart'; // Import for TagRemovalData
 import 'action_button.dart';
+import 'header_rectangle.dart'; // Import the new HeaderRectangle
 
-/// Note input area with text field and action buttons
+/// Note input area with structured note-blocks and action buttons
 /// Light mode only
 class NoteInputArea extends StatefulWidget {
   final TextEditingController controller;
@@ -69,6 +70,17 @@ class _NoteInputAreaState extends State<NoteInputArea> {
   // Key to get the bounds of the note input area for drag detection
   final GlobalKey _noteInputKey = GlobalKey();
 
+  // Separate controller for header (we might want to split functionality later)
+  late TextEditingController _headerController;
+
+  @override
+  void initState() {
+    super.initState();
+    // For now, use the same controller for header as the main note
+    // This can be separated later when you add more note-blocks
+    _headerController = widget.controller;
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isCompact =
@@ -77,9 +89,6 @@ class _NoteInputAreaState extends State<NoteInputArea> {
     final iconSize = AppLayout.getIconSize(context);
     final actionBarHeight = isCompact ? 33.75 : 45.0;
     final padding = isCompact ? 10.0 : 16.0;
-    final contentPadding = isCompact
-        ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
-        : const EdgeInsets.symmetric(horizontal: 16, vertical: 12);
 
     // Create a combined DragTarget for both tag addition and tag removal
     return DragTarget<Object>(
@@ -159,29 +168,66 @@ class _NoteInputAreaState extends State<NoteInputArea> {
                 color: theme.dividerTheme.color,
               ),
 
-              // Text input field
+              // Note-blocks area - starting with Header Rectangle
               Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                      top: isCompact ? 5.0 : AppLayout.spacingS),
-                  child: TextField(
-                    controller: widget.controller,
-                    focusNode: widget.focusNode,
-                    decoration: InputDecoration(
-                      contentPadding: contentPadding,
-                      hintText: 'Input text',
-                      border: InputBorder.none,
-                      hintStyle: TextStyle(
-                        // Light mode hint color only
-                        color: Colors.grey.shade400,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header Rectangle - positioned at the very top
+                    HeaderRectangle(
+                      controller: _headerController,
+                      focusNode: widget.focusNode,
+                      isCompact: isCompact,
+                      onChanged: (text) {
+                        // Handle header text changes if needed
+                        debugPrint('Header changed: $text');
+                      },
+                    ),
+
+                    // Future note-blocks will be added here
+                    // For now, add a placeholder area for additional content
+                    Expanded(
+                      child: Container(
+                        margin: EdgeInsets.symmetric(
+                          horizontal: isCompact ? 8.0 : 12.0,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(isCompact
+                              ? AppLayout.buttonRadius * 0.8
+                              : AppLayout.buttonRadius),
+                          border: Border.all(
+                            color: Colors.grey.shade200,
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.add_box_outlined,
+                                size: isCompact ? 32.0 : 40.0,
+                                color: Colors.grey.shade400,
+                              ),
+                              SizedBox(height: isCompact ? 8.0 : 12.0),
+                              Text(
+                                'Additional note-blocks\ncoming soon',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.grey.shade500,
+                                  fontSize: isCompact ? 12.0 : 14.0,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                    style: theme.textTheme.bodyLarge,
-                    maxLines: null,
-                    expands: true,
-                    textAlignVertical: TextAlignVertical.top,
-                    textCapitalization: TextCapitalization.sentences,
-                  ),
+
+                    SizedBox(height: isCompact ? 8.0 : 12.0),
+                  ],
                 ),
               ),
 
