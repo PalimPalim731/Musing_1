@@ -1,6 +1,7 @@
 // widgets/note/header_rectangle.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../config/constants/layout.dart';
 
 /// Header Rectangle - A predefined rectangular input area for note headers/titles
@@ -65,13 +66,53 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
     );
   }
 
+  /// Calculate how many lines the text should occupy based on 21-character limit per line
+  int _calculateTextLines(String text) {
+    if (text.isEmpty) return 1;
+
+    const int maxCharactersPerLine = 21;
+    final words = text.split(' ');
+    int currentLineLength = 0;
+    int lineCount = 1;
+
+    for (int i = 0; i < words.length; i++) {
+      final word = words[i];
+      final wordLength = word.length;
+
+      // Check if adding this word would exceed the line limit
+      if (currentLineLength + wordLength + (currentLineLength > 0 ? 1 : 0) >
+          maxCharactersPerLine) {
+        // Move to next line if we haven't reached the max line limit
+        if (lineCount < 2) {
+          lineCount++;
+          currentLineLength = wordLength;
+        } else {
+          // We've reached max lines, stop calculating
+          break;
+        }
+      } else {
+        // Add word to current line
+        currentLineLength +=
+            wordLength + (currentLineLength > 0 ? 1 : 0); // +1 for space
+      }
+    }
+
+    return lineCount;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool hasContent = widget.controller.text.isNotEmpty;
 
     // Calculate responsive dimensions
-    final double height = widget.isCompact ? 48.0 : 56.0;
+    final double baseHeight = widget.isCompact ? 48.0 : 56.0;
+    final double lineHeight = widget.isCompact ? 20.0 : 24.0;
+
+    // Calculate dynamic height based on text content (max 2 lines)
+    final textLines = _calculateTextLines(widget.controller.text);
+    final double dynamicHeight = baseHeight + (lineHeight * (textLines - 1));
+
     final double borderRadius = widget.isCompact
         ? AppLayout.buttonRadius * 0.8
         : AppLayout.buttonRadius;
@@ -97,7 +138,7 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
     }
 
     return Container(
-      height: height,
+      height: dynamicHeight,
       margin: EdgeInsets.only(
         left: widget.isCompact ? 8.0 : 12.0,
         right: widget.isCompact ? 8.0 : 12.0,
@@ -167,9 +208,16 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
                     ),
                     isDense: true,
                   ),
-                  maxLines: 1,
+                  maxLines: 2, // Allow up to 2 lines
+                  inputFormatters: [
+                    _TwoLineTextFormatter(), // Custom formatter to enforce 2-line limit
+                  ],
                   textCapitalization: TextCapitalization.words,
-                  onChanged: widget.onChanged,
+                  onChanged: (text) {
+                    // Trigger rebuild to adjust height dynamically
+                    setState(() {});
+                    widget.onChanged?.call(text);
+                  },
                   textAlignVertical: TextAlignVertical.top,
                 ),
 
@@ -197,5 +245,86 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
         ),
       ),
     );
+  }
+}
+
+/// Custom TextInputFormatter to enforce 2-line limit with 21 characters per line
+/// and word-boundary respect
+class _TwoLineTextFormatter extends TextInputFormatter {
+  static const int maxCharactersPerLine = 21;
+  static const int maxLines = 2;
+  static const int maxTotalCharacters =
+      maxCharactersPerLine * maxLines; // 42 total
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // If text is being deleted, always allow it
+    if (newValue.text.length < oldValue.text.length) {
+      return newValue;
+    }
+
+    // Hard limit: Never allow more than 42 characters total (21 chars × 2 lines)
+    if (newValue.text.length > maxTotalCharacters) {
+      return oldValue;
+    }
+
+    // Check if the new text would fit within our constraints
+    if (_wouldTextFitInLines(newValue.text)) {
+      return newValue;
+    } else {
+      // Reject the new input and keep the old value
+      return oldValue;
+    }
+  }
+
+  /// Check if the given text would fit within 2 lines of 21 characters each
+  /// respecting word boundaries when possible
+  bool _wouldTextFitInLines(String text) {
+    if (text.isEmpty) return true;
+
+    // Hard character limit check first
+    if (text.length > maxTotalCharacters) return false;
+
+    // If text has no spaces, check if it fits in character limits
+    if (!text.contains(' ')) {
+      return text.length <= maxTotalCharacters;
+    }
+
+    // For text with spaces, use word boundary logic
+    final words = text.split(' ');
+    int currentLineLength = 0;
+    int lineCount = 1;
+
+    for (int i = 0; i < words.length; i++) {
+      final word = words[i];
+      final wordLength = word.length;
+
+      // If a single word is longer than one line, reject it
+      if (wordLength > maxCharactersPerLine) {
+        return false;
+      }
+
+      // Check if adding this word would exceed the line limit
+      if (currentLineLength + wordLength + (currentLineLength > 0 ? 1 : 0) >
+          maxCharactersPerLine) {
+        // Would need to move to next line
+        if (lineCount < maxLines) {
+          lineCount++;
+          currentLineLength = wordLength;
+        } else {
+          // Would exceed max lines - reject
+          return false;
+        }
+      } else {
+        // Add word to current line
+        currentLineLength +=
+            wordLength + (currentLineLength > 0 ? 1 : 0); // +1 for space
+      }
+    }
+
+    return true;
   }
 }
