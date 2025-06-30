@@ -29,16 +29,23 @@ class HeaderRectangle extends StatefulWidget {
 class _HeaderRectangleState extends State<HeaderRectangle> {
   bool _isFocused = false;
   late FocusNode _internalFocusNode;
+  String _lastValidText = '';
+  final GlobalKey _textFieldKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _internalFocusNode = widget.focusNode ?? FocusNode();
     _internalFocusNode.addListener(_onFocusChange);
+    _lastValidText = widget.controller.text;
+
+    // Listen to controller changes to enforce 2-line limit
+    widget.controller.addListener(_onTextChanged);
   }
 
   @override
   void dispose() {
+    widget.controller.removeListener(_onTextChanged);
     if (widget.focusNode == null) {
       _internalFocusNode.dispose();
     } else {
@@ -51,6 +58,63 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
     setState(() {
       _isFocused = _internalFocusNode.hasFocus;
     });
+  }
+
+  void _onTextChanged() {
+    // Check if current text exceeds 2 lines
+    if (_textExceedsTwoLines(widget.controller.text)) {
+      // Revert to last valid text
+      widget.controller.text = _lastValidText;
+      widget.controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: _lastValidText.length),
+      );
+    } else {
+      // Update last valid text
+      _lastValidText = widget.controller.text;
+      setState(() {}); // Trigger rebuild for height adjustment
+    }
+  }
+
+  bool _textExceedsTwoLines(String text) {
+    if (text.isEmpty) return false;
+
+    // Get the render box to measure actual width
+    final RenderBox? renderBox =
+        _textFieldKey.currentContext?.findRenderObject() as RenderBox?;
+
+    if (renderBox == null) {
+      // Fallback: estimate width if render box not available
+      return _estimateIfTextExceedsTwoLines(text);
+    }
+
+    final double availableWidth = renderBox.size.width;
+    final double fontSize = AppLayout.getFontSize(context,
+        baseSize: widget.isCompact ? 16.0 : 18.0);
+
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: FontWeight.w600,
+          height: 1.2,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: null,
+    );
+
+    textPainter.layout(maxWidth: availableWidth);
+    final lineCount = textPainter.computeLineMetrics().length;
+    textPainter.dispose();
+
+    return lineCount > 2;
+  }
+
+  bool _estimateIfTextExceedsTwoLines(String text) {
+    // Rough estimation when render box is not available
+    // This will be refined once the widget is built
+    return text.length > 60; // Conservative estimate
   }
 
   Widget _buildDot(ThemeData theme) {
@@ -66,40 +130,6 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
     );
   }
 
-  /// Calculate how many lines the text should occupy based on 21-character limit per line
-  int _calculateTextLines(String text) {
-    if (text.isEmpty) return 1;
-
-    const int maxCharactersPerLine = 21;
-    final words = text.split(' ');
-    int currentLineLength = 0;
-    int lineCount = 1;
-
-    for (int i = 0; i < words.length; i++) {
-      final word = words[i];
-      final wordLength = word.length;
-
-      // Check if adding this word would exceed the line limit
-      if (currentLineLength + wordLength + (currentLineLength > 0 ? 1 : 0) >
-          maxCharactersPerLine) {
-        // Move to next line if we haven't reached the max line limit
-        if (lineCount < 2) {
-          lineCount++;
-          currentLineLength = wordLength;
-        } else {
-          // We've reached max lines, stop calculating
-          break;
-        }
-      } else {
-        // Add word to current line
-        currentLineLength +=
-            wordLength + (currentLineLength > 0 ? 1 : 0); // +1 for space
-      }
-    }
-
-    return lineCount;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -109,9 +139,10 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
     final double baseHeight = widget.isCompact ? 48.0 : 56.0;
     final double lineHeight = widget.isCompact ? 20.0 : 24.0;
 
-    // Calculate dynamic height based on text content (max 2 lines)
-    final textLines = _calculateTextLines(widget.controller.text);
-    final double dynamicHeight = baseHeight + (lineHeight * (textLines - 1));
+    // Simple height calculation: expand when text is getting long
+    final bool isLongText = widget.controller.text.length > 25;
+    final double dynamicHeight =
+        isLongText ? baseHeight + lineHeight : baseHeight;
 
     final double borderRadius = widget.isCompact
         ? AppLayout.buttonRadius * 0.8
@@ -193,29 +224,23 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
                   ),
                   decoration: InputDecoration(
                     border: InputBorder.none,
-                    hintText: null, // No placeholder text
+                    hintText: null,
                     contentPadding: EdgeInsets.only(
                       top: widget.isCompact ? 8.0 : 12.0,
-                      bottom: widget.isCompact
-                          ? 16.0
-                          : 20.0, // Extra bottom padding for dots
-                      left: widget.isCompact
-                          ? 0
-                          : 0, // Your change - text at very edge
-                      right: widget.isCompact
-                          ? 0
-                          : 0, // Your change - text at very edge
+                      bottom: widget.isCompact ? 16.0 : 20.0,
+                      left: 0,
+                      right: 0,
                     ),
                     isDense: true,
                   ),
-                  maxLines: 2, // Allow up to 2 lines
+                  maxLines: 2, // Allow up to 2 lines for display
                   inputFormatters: [
-                    _TwoLineTextFormatter(), // Custom formatter to enforce 2-line limit
+                    LengthLimitingTextInputFormatter(
+                        52), // BRUTE FORCE: Block 53rd character
                   ],
                   textCapitalization: TextCapitalization.words,
                   onChanged: (text) {
-                    // Trigger rebuild to adjust height dynamically
-                    setState(() {});
+                    setState(() {}); // Trigger height recalculation
                     widget.onChanged?.call(text);
                   },
                   textAlignVertical: TextAlignVertical.top,
@@ -225,9 +250,7 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
                 if (!hasContent)
                   Positioned(
                     bottom: widget.isCompact ? 4.0 : 6.0,
-                    left: widget.isCompact
-                        ? 0.0
-                        : 0.0, // Match exactly where text starts
+                    left: 0.0,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -245,86 +268,5 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
         ),
       ),
     );
-  }
-}
-
-/// Custom TextInputFormatter to enforce 2-line limit with 21 characters per line
-/// and word-boundary respect
-class _TwoLineTextFormatter extends TextInputFormatter {
-  static const int maxCharactersPerLine = 21;
-  static const int maxLines = 2;
-  static const int maxTotalCharacters =
-      maxCharactersPerLine * maxLines; // 42 total
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    // If text is being deleted, always allow it
-    if (newValue.text.length < oldValue.text.length) {
-      return newValue;
-    }
-
-    // Hard limit: Never allow more than 42 characters total (21 chars × 2 lines)
-    if (newValue.text.length > maxTotalCharacters) {
-      return oldValue;
-    }
-
-    // Check if the new text would fit within our constraints
-    if (_wouldTextFitInLines(newValue.text)) {
-      return newValue;
-    } else {
-      // Reject the new input and keep the old value
-      return oldValue;
-    }
-  }
-
-  /// Check if the given text would fit within 2 lines of 21 characters each
-  /// respecting word boundaries when possible
-  bool _wouldTextFitInLines(String text) {
-    if (text.isEmpty) return true;
-
-    // Hard character limit check first
-    if (text.length > maxTotalCharacters) return false;
-
-    // If text has no spaces, check if it fits in character limits
-    if (!text.contains(' ')) {
-      return text.length <= maxTotalCharacters;
-    }
-
-    // For text with spaces, use word boundary logic
-    final words = text.split(' ');
-    int currentLineLength = 0;
-    int lineCount = 1;
-
-    for (int i = 0; i < words.length; i++) {
-      final word = words[i];
-      final wordLength = word.length;
-
-      // If a single word is longer than one line, reject it
-      if (wordLength > maxCharactersPerLine) {
-        return false;
-      }
-
-      // Check if adding this word would exceed the line limit
-      if (currentLineLength + wordLength + (currentLineLength > 0 ? 1 : 0) >
-          maxCharactersPerLine) {
-        // Would need to move to next line
-        if (lineCount < maxLines) {
-          lineCount++;
-          currentLineLength = wordLength;
-        } else {
-          // Would exceed max lines - reject
-          return false;
-        }
-      } else {
-        // Add word to current line
-        currentLineLength +=
-            wordLength + (currentLineLength > 0 ? 1 : 0); // +1 for space
-      }
-    }
-
-    return true;
   }
 }
