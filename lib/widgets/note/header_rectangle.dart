@@ -173,23 +173,24 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
                   textAlignVertical: TextAlignVertical.top,
                 ),
 
-                // Three discrete dots positioned at bottom left corner
-                Positioned(
-                  bottom: widget.isCompact ? 4.0 : 6.0,
-                  left: widget.isCompact
-                      ? 0.0
-                      : 0.0, // Match exactly where text starts
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildDot(theme),
-                      SizedBox(width: widget.isCompact ? 3.0 : 4.0),
-                      _buildDot(theme),
-                      SizedBox(width: widget.isCompact ? 3.0 : 4.0),
-                      _buildDot(theme),
-                    ],
+                // Three discrete dots positioned at bottom left corner (only when empty)
+                if (!hasContent)
+                  Positioned(
+                    bottom: widget.isCompact ? 4.0 : 6.0,
+                    left: widget.isCompact
+                        ? 0.0
+                        : 0.0, // Match exactly where text starts
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildDot(theme),
+                        SizedBox(width: widget.isCompact ? 3.0 : 4.0),
+                        _buildDot(theme),
+                        SizedBox(width: widget.isCompact ? 3.0 : 4.0),
+                        _buildDot(theme),
+                      ],
+                    ),
                   ),
-                ),
               ],
             ),
           ),
