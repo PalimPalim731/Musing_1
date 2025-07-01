@@ -29,23 +29,16 @@ class HeaderRectangle extends StatefulWidget {
 class _HeaderRectangleState extends State<HeaderRectangle> {
   bool _isFocused = false;
   late FocusNode _internalFocusNode;
-  String _lastValidText = '';
-  final GlobalKey _textFieldKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _internalFocusNode = widget.focusNode ?? FocusNode();
     _internalFocusNode.addListener(_onFocusChange);
-    _lastValidText = widget.controller.text;
-
-    // Listen to controller changes to enforce 2-line limit
-    widget.controller.addListener(_onTextChanged);
   }
 
   @override
   void dispose() {
-    widget.controller.removeListener(_onTextChanged);
     if (widget.focusNode == null) {
       _internalFocusNode.dispose();
     } else {
@@ -58,63 +51,6 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
     setState(() {
       _isFocused = _internalFocusNode.hasFocus;
     });
-  }
-
-  void _onTextChanged() {
-    // Check if current text exceeds 2 lines
-    if (_textExceedsTwoLines(widget.controller.text)) {
-      // Revert to last valid text
-      widget.controller.text = _lastValidText;
-      widget.controller.selection = TextSelection.fromPosition(
-        TextPosition(offset: _lastValidText.length),
-      );
-    } else {
-      // Update last valid text
-      _lastValidText = widget.controller.text;
-      setState(() {}); // Trigger rebuild for height adjustment
-    }
-  }
-
-  bool _textExceedsTwoLines(String text) {
-    if (text.isEmpty) return false;
-
-    // Get the render box to measure actual width
-    final RenderBox? renderBox =
-        _textFieldKey.currentContext?.findRenderObject() as RenderBox?;
-
-    if (renderBox == null) {
-      // Fallback: estimate width if render box not available
-      return _estimateIfTextExceedsTwoLines(text);
-    }
-
-    final double availableWidth = renderBox.size.width;
-    final double fontSize = AppLayout.getFontSize(context,
-        baseSize: widget.isCompact ? 16.0 : 18.0);
-
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(
-          fontSize: fontSize,
-          fontWeight: FontWeight.w600,
-          height: 1.2,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-      maxLines: null,
-    );
-
-    textPainter.layout(maxWidth: availableWidth);
-    final lineCount = textPainter.computeLineMetrics().length;
-    textPainter.dispose();
-
-    return lineCount > 2;
-  }
-
-  bool _estimateIfTextExceedsTwoLines(String text) {
-    // Rough estimation when render box is not available
-    // This will be refined once the widget is built
-    return text.length > 60; // Conservative estimate
   }
 
   Widget _buildDot(ThemeData theme) {
@@ -130,6 +66,40 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
     );
   }
 
+  /// Calculate how many lines the text should occupy based on 21-character limit per line
+  int _calculateTextLines(String text) {
+    if (text.isEmpty) return 1;
+
+    const int maxCharactersPerLine = 21;
+    final words = text.split(' ');
+    int currentLineLength = 0;
+    int lineCount = 1;
+
+    for (int i = 0; i < words.length; i++) {
+      final word = words[i];
+      final wordLength = word.length;
+
+      // Check if adding this word would exceed the line limit
+      if (currentLineLength + wordLength + (currentLineLength > 0 ? 1 : 0) >
+          maxCharactersPerLine) {
+        // Move to next line if we haven't reached the max line limit
+        if (lineCount < 2) {
+          lineCount++;
+          currentLineLength = wordLength;
+        } else {
+          // We've reached max lines, stop calculating
+          break;
+        }
+      } else {
+        // Add word to current line
+        currentLineLength +=
+            wordLength + (currentLineLength > 0 ? 1 : 0); // +1 for space
+      }
+    }
+
+    return lineCount;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -139,10 +109,9 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
     final double baseHeight = widget.isCompact ? 48.0 : 56.0;
     final double lineHeight = widget.isCompact ? 20.0 : 24.0;
 
-    // Simple height calculation: expand when text is getting long
-    final bool isLongText = widget.controller.text.length > 25;
-    final double dynamicHeight =
-        isLongText ? baseHeight + lineHeight : baseHeight;
+    // Calculate dynamic height based on text content (max 2 lines)
+    final textLines = _calculateTextLines(widget.controller.text);
+    final double dynamicHeight = baseHeight + (lineHeight * (textLines - 1));
 
     final double borderRadius = widget.isCompact
         ? AppLayout.buttonRadius * 0.8
@@ -236,7 +205,7 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
                   maxLines: 2, // Allow up to 2 lines for display
                   inputFormatters: [
                     LengthLimitingTextInputFormatter(
-                        52), // BRUTE FORCE: Block 53rd character
+                        42), // Hard limit: 42 characters total
                   ],
                   textCapitalization: TextCapitalization.words,
                   onChanged: (text) {
