@@ -27,36 +27,117 @@ class HeaderRectangle extends StatefulWidget {
 }
 
 class _HeaderRectangleState extends State<HeaderRectangle> {
+  // Constants for consistent sizing
+  static const int _maxCharacters = 42;
+  static const int _maxLines = 2;
+  static const int _charactersPerLine = 21;
+  static const double _expansionMultiplierCompact = 1.0;
+  static const double _expansionMultiplierNormal = 1.06;
+
+  // State variables
   bool _isFocused = false;
   late FocusNode _internalFocusNode;
 
   @override
   void initState() {
     super.initState();
-    _internalFocusNode = widget.focusNode ?? FocusNode();
-    _internalFocusNode.addListener(_onFocusChange);
+    _initializeFocusNode();
   }
 
   @override
   void dispose() {
+    _disposeFocusNode();
+    super.dispose();
+  }
+
+  /// Initialize focus node and listener
+  void _initializeFocusNode() {
+    _internalFocusNode = widget.focusNode ?? FocusNode();
+    _internalFocusNode.addListener(_onFocusChange);
+  }
+
+  /// Clean up focus node and listener
+  void _disposeFocusNode() {
     if (widget.focusNode == null) {
       _internalFocusNode.dispose();
     } else {
       _internalFocusNode.removeListener(_onFocusChange);
     }
-    super.dispose();
   }
 
+  /// Handle focus state changes
   void _onFocusChange() {
     setState(() {
       _isFocused = _internalFocusNode.hasFocus;
     });
   }
 
-  Widget _buildDot(ThemeData theme) {
+  /// Calculate responsive dimensions based on compact mode
+  ({double baseHeight, double lineHeight, double padding, double margin}) _getDimensions() {
+    if (widget.isCompact) {
+      return (
+        baseHeight: 30.0,
+        lineHeight: 20.0,
+        padding: 7.5,
+        margin: 10.0,
+      );
+    } else {
+      return (
+        baseHeight: 35.0,
+        lineHeight: 25.0,
+        padding: 10.0,
+        margin: 15.0,
+      );
+    }
+  }
+
+  /// Calculate dynamic height based on text content
+  double _calculateDynamicHeight() {
+    final dimensions = _getDimensions();
+    final textLines = _calculateTextLines(widget.controller.text);
+    final expansionMultiplier = widget.isCompact 
+        ? _expansionMultiplierCompact 
+        : _expansionMultiplierNormal;
+    final reducedLineHeight = dimensions.lineHeight * expansionMultiplier;
+    
+    return dimensions.baseHeight + (reducedLineHeight * (textLines - 1));
+  }
+
+  /// Calculate number of lines based on character limits and word boundaries
+  int _calculateTextLines(String text) {
+    if (text.isEmpty) return 1;
+    
+    final words = text.split(' ');
+    int currentLineLength = 0;
+    int lineCount = 1;
+    
+    for (final word in words) {
+      final wordLength = word.length;
+      final spaceNeeded = currentLineLength > 0 ? 1 : 0; // Space before word
+      
+      if (currentLineLength + wordLength + spaceNeeded > _charactersPerLine) {
+        if (lineCount < _maxLines) {
+          lineCount++;
+          currentLineLength = wordLength;
+        } else {
+          break; // Max lines reached
+        }
+      } else {
+        currentLineLength += wordLength + spaceNeeded;
+      }
+    }
+    
+    return lineCount;
+  }
+
+  /// Build individual dot indicator
+  Widget _buildDot() {
+    final theme = Theme.of(context);
+    final dotSize = widget.isCompact ? 3.0 : 4.0;
+    
     return Container(
-      width: widget.isCompact ? 3.0 : 4.0,
-      height: widget.isCompact ? 3.0 : 4.0,
+      width: dotSize,
+      height: dotSize,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: _isFocused
@@ -66,114 +147,95 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
     );
   }
 
-  /// Calculate how many lines the text should occupy based on 21-character limit per line
-  int _calculateTextLines(String text) {
-    if (text.isEmpty) return 1;
+  /// Build the three dots indicator
+  Widget _buildDotsIndicator() {
+    final dotSpacing = widget.isCompact ? 3.0 : 4.0;
+    
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildDot(),
+        SizedBox(width: dotSpacing),
+        _buildDot(),
+        SizedBox(width: dotSpacing),
+        _buildDot(),
+      ],
+    );
+  }
 
-    const int maxCharactersPerLine = 21;
-    final words = text.split(' ');
-    int currentLineLength = 0;
-    int lineCount = 1;
-
-    for (int i = 0; i < words.length; i++) {
-      final word = words[i];
-      final wordLength = word.length;
-
-      // Check if adding this word would exceed the line limit
-      if (currentLineLength + wordLength + (currentLineLength > 0 ? 1 : 0) >
-          maxCharactersPerLine) {
-        // Move to next line if we haven't reached the max line limit
-        if (lineCount < 2) {
-          lineCount++;
-          currentLineLength = wordLength;
-        } else {
-          // We've reached max lines, stop calculating
-          break;
-        }
-      } else {
-        // Add word to current line
-        currentLineLength +=
-            wordLength + (currentLineLength > 0 ? 1 : 0); // +1 for space
-      }
+  /// Get border and background colors based on state
+  ({Color borderColor, Color backgroundColor}) _getColors() {
+    final theme = Theme.of(context);
+    
+    if (_isFocused) {
+      return (
+        borderColor: theme.colorScheme.primary,
+        backgroundColor: theme.colorScheme.primary.withOpacity(0.05),
+      );
+    } else {
+      return (
+        borderColor: Colors.grey.shade300,
+        backgroundColor: Colors.grey.shade50,
+      );
     }
+  }
 
-    return lineCount;
+  /// Get responsive border width
+  double _getBorderWidth() {
+    final baseWidth = widget.isCompact ? 1.2 : 1.5;
+    final focusedWidth = widget.isCompact ? 1.8 : 2.0;
+    return _isFocused ? focusedWidth : baseWidth;
+  }
+
+  /// Get responsive shadow effects
+  List<BoxShadow> _getShadows() {
+    if (_isFocused) {
+      return [
+        BoxShadow(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+          blurRadius: widget.isCompact ? 6.0 : 8.0,
+          offset: Offset(0, widget.isCompact ? 1.5 : 2.0),
+        ),
+      ];
+    } else {
+      return [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: widget.isCompact ? 1.5 : 2.0,
+          offset: Offset(0, widget.isCompact ? 0.8 : 1.0),
+        ),
+      ];
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    // Calculate responsive dimensions - Increased by 25% across the board
-    final double baseHeight =
-        widget.isCompact ? 30.0 : 35.0; // Was 24/28, now +25%
-    final double lineHeight =
-        widget.isCompact ? 20.0 : 25.0; // Was 16/20, now +25%
-
-    // Calculate dynamic height based on text content (max 2 lines)
-    final textLines = _calculateTextLines(widget.controller.text);
-    // Responsive expansion multiplier - increased proportionally with 25% larger base
-    final double expansionMultiplier =
-        widget.isCompact ? 1.0 : 1.06; // Slightly increased from 0.8/0.85
-    final double reducedLineHeight = lineHeight * expansionMultiplier;
-    final double dynamicHeight =
-        baseHeight + (reducedLineHeight * (textLines - 1));
-
-    final double borderRadius = widget.isCompact
-        ? AppLayout.buttonRadius * 0.8
+    final dimensions = _getDimensions();
+    final colors = _getColors();
+    final fontSize = AppLayout.getFontSize(
+      context, 
+      baseSize: widget.isCompact ? 16.0 : 18.0,
+    );
+    final borderRadius = widget.isCompact 
+        ? AppLayout.buttonRadius * 0.8 
         : AppLayout.buttonRadius;
-    final double fontSize = AppLayout.getFontSize(context,
-        baseSize: widget.isCompact ? 16.0 : 18.0);
-    final EdgeInsets padding = widget.isCompact
-        ? const EdgeInsets.all(7.5) // Was 6.0, now +25% = 7.5
-        : const EdgeInsets.all(10.0); // Was 8.0, now +25% = 10.0
-
-    // Define colors based on state
-    Color borderColor;
-    Color backgroundColor;
-
-    if (_isFocused) {
-      borderColor = theme.colorScheme.primary;
-      backgroundColor = theme.colorScheme.primary.withOpacity(0.05);
-    } else {
-      borderColor = Colors.grey.shade300;
-      backgroundColor = Colors.grey.shade50;
-    }
 
     return Container(
-      height: dynamicHeight,
+      height: _calculateDynamicHeight(),
       margin: EdgeInsets.only(
-        left: widget.isCompact ? 10.0 : 15.0, // Was 8/12, now +25% = 10/15
-        right: widget.isCompact ? 10.0 : 15.0, // Was 8/12, now +25% = 10/15
-        top: widget.isCompact ? 10.0 : 15.0, // Was 8/12, now +25% = 10/15
-        bottom: widget.isCompact ? 7.5 : 10.0, // Was 6/8, now +25% = 7.5/10
+        left: dimensions.margin,
+        right: dimensions.margin,
+        top: dimensions.margin,
+        bottom: widget.isCompact ? 7.5 : 10.0, // Slightly different bottom margin
       ),
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: colors.backgroundColor,
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
-          color: borderColor,
-          width: _isFocused
-              ? (widget.isCompact ? 1.8 : 2.0) // Responsive focused border
-              : (widget.isCompact ? 1.2 : 1.5), // Responsive unfocused border
+          color: colors.borderColor,
+          width: _getBorderWidth(),
         ),
-        boxShadow: _isFocused
-            ? [
-                BoxShadow(
-                  color: theme.colorScheme.primary.withOpacity(0.15),
-                  blurRadius: widget.isCompact ? 6.0 : 8.0, // Responsive blur
-                  offset: Offset(
-                      0, widget.isCompact ? 1.5 : 2.0), // Responsive offset
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: widget.isCompact ? 1.5 : 2.0, // Responsive blur
-                  offset: Offset(
-                      0, widget.isCompact ? 0.8 : 1.0), // Responsive offset
-                ),
-              ],
+        boxShadow: _getShadows(),
       ),
       child: Material(
         color: Colors.transparent,
@@ -185,70 +247,47 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
             widget.onTap?.call();
           },
           child: Padding(
-            padding: padding,
+            padding: EdgeInsets.all(dimensions.padding),
             child: Stack(
               children: [
-                // Text input taking full space
+                // Main text input field
                 TextField(
                   controller: widget.controller,
                   focusNode: _internalFocusNode,
                   style: TextStyle(
                     fontSize: fontSize,
                     fontWeight: FontWeight.w600,
-                    color: theme.colorScheme.onSurface,
-                    height: widget.isCompact
-                        ? 1.0
-                        : 1.0, // Responsive line height (same for now, but consistent pattern)
+                    color: Theme.of(context).colorScheme.onSurface,
+                    height: 1.0,
                   ),
-                  strutStyle: StrutStyle(
-                    height:
-                        widget.isCompact ? 1.0 : 1.0, // Responsive strut height
-                    forceStrutHeight: true, // Force consistent text baseline
+                  strutStyle: const StrutStyle(
+                    height: 1.0,
+                    forceStrutHeight: true,
                   ),
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     border: InputBorder.none,
-                    hintText: null,
-                    contentPadding: EdgeInsets.all(
-                      widget.isCompact
-                          ? 0.0
-                          : 0.0, // Equal minimal padding on ALL sides
-                    ),
+                    contentPadding: EdgeInsets.zero,
                     isDense: true,
-                    isCollapsed: true, // Remove all internal padding
+                    isCollapsed: true,
                   ),
-                  maxLines: 2, // Allow up to 2 lines for display
+                  maxLines: _maxLines,
                   inputFormatters: [
-                    LengthLimitingTextInputFormatter(
-                        42), // Hard limit: 42 characters total
+                    LengthLimitingTextInputFormatter(_maxCharacters),
                   ],
                   textCapitalization: TextCapitalization.words,
+                  textAlignVertical: TextAlignVertical.center,
                   onChanged: (text) {
                     setState(() {}); // Trigger height recalculation
                     widget.onChanged?.call(text);
                   },
-                  textAlignVertical: TextAlignVertical
-                      .center, // Center text vertically for equal spacing
                 ),
 
-                // Three discrete dots positioned at bottom left corner (disappear when focused)
+                // Three dots indicator (visible when unfocused)
                 if (!_isFocused)
                   Positioned(
-                    bottom: widget.isCompact
-                        ? 2.0
-                        : 3.0, // Adjusted for new container size
-                    left: widget.isCompact
-                        ? 0.0
-                        : 0.0, // Match exactly where text starts
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildDot(theme),
-                        SizedBox(width: widget.isCompact ? 3.0 : 4.0),
-                        _buildDot(theme),
-                        SizedBox(width: widget.isCompact ? 3.0 : 4.0),
-                        _buildDot(theme),
-                      ],
-                    ),
+                    bottom: widget.isCompact ? 2.0 : 3.0,
+                    left: 0.0,
+                    child: _buildDotsIndicator(),
                   ),
               ],
             ),

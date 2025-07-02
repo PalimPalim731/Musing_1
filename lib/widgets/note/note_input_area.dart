@@ -4,20 +4,20 @@ import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 import '../../models/tag.dart';
 import '../tag/tag_list.dart';
-import '../tag/tag_chip.dart'; // Import for TagRemovalData
+import '../tag/tag_chip.dart';
 import 'action_button.dart';
-import 'header_rectangle.dart'; // Import the new HeaderRectangle
+import 'header_rectangle.dart';
 
 /// Note input area with structured note-blocks and action buttons
 /// Light mode only
 class NoteInputArea extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode? focusNode;
-  final List<TagData> appliedQuickTags; // Rectangle-based tags (3 chars)
-  final List<TagData> appliedRegularTags; // Sidebar tags (longer names)
+  final List<TagData> appliedQuickTags;
+  final List<TagData> appliedRegularTags;
   final Function(TagData)? onTagAdded;
   final Function(TagData)? onTagRemoved;
-  final String? category; // Add category parameter for spacing optimization
+  final String? category;
 
   // Action callbacks
   final VoidCallback? onDelete;
@@ -35,7 +35,7 @@ class NoteInputArea extends StatefulWidget {
     this.appliedRegularTags = const [],
     this.onTagAdded,
     this.onTagRemoved,
-    this.category, // Optional category for spacing optimization
+    this.category,
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -67,189 +67,211 @@ class NoteInputArea extends StatefulWidget {
 }
 
 class _NoteInputAreaState extends State<NoteInputArea> {
-  // Key to get the bounds of the note input area for drag detection
+  // Key for drag detection bounds
   final GlobalKey _noteInputKey = GlobalKey();
-
-  // Separate controller for header (we might want to split functionality later)
+  
+  // Header controller (currently shares the same controller)
   late TextEditingController _headerController;
 
   @override
   void initState() {
     super.initState();
-    // For now, use the same controller for header as the main note
-    // This can be separated later when you add more note-blocks
     _headerController = widget.controller;
+  }
+
+  /// Get responsive dimensions
+  ({bool isCompact, double iconSize, double actionBarHeight, double padding}) _getDimensions() {
+    final isCompact = MediaQuery.of(context).size.width < AppLayout.tabletBreakpoint;
+    return (
+      isCompact: isCompact,
+      iconSize: AppLayout.getIconSize(context),
+      actionBarHeight: isCompact ? 33.75 : 45.0,
+      padding: isCompact ? 10.0 : 16.0,
+    );
+  }
+
+  /// Check if dragged data should be accepted
+  bool _shouldAcceptDragData(Object? data) {
+    if (data is TagData) {
+      final alreadyAppliedAsQuick = widget.appliedQuickTags.any((t) => t.id == data.id);
+      final alreadyAppliedAsRegular = widget.appliedRegularTags.any((t) => t.id == data.id);
+      return !alreadyAppliedAsQuick && !alreadyAppliedAsRegular;
+    }
+    return data is TagRemovalData;
+  }
+
+  /// Handle when dragged data is accepted
+  void _handleDragAccept(Object data) {
+    if (data is TagData && widget.onTagAdded != null) {
+      widget.onTagAdded!(data);
+    }
+  }
+
+  /// Handle when dragged data leaves the area
+  void _handleDragLeave(Object? data) {
+    if (data is TagRemovalData) {
+      debugPrint('Tag dragged outside bounds: ${data.tag.label}');
+      data.onRemove();
+    }
+  }
+
+  /// Build the main content container with drag functionality
+  Widget _buildContentContainer({
+    required Widget child,
+    required bool isHighlighted,
+    required ThemeData theme,
+  }) {
+    return Container(
+      key: _noteInputKey,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: isHighlighted ? Colors.blue.shade50 : Colors.white,
+        border: Border.all(
+          color: isHighlighted
+              ? theme.colorScheme.primary.withOpacity(0.5)
+              : Colors.grey.shade300,
+        ),
+        borderRadius: BorderRadius.circular(AppLayout.buttonRadius),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  /// Build the main note content area
+  Widget _buildNoteContent(double actionBarHeight, double padding, bool isCompact) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header Rectangle note-block
+          HeaderRectangle(
+            controller: _headerController,
+            focusNode: widget.focusNode,
+            isCompact: isCompact,
+            onChanged: (text) {
+              debugPrint('Header changed: $text');
+            },
+          ),
+
+          // Future note-blocks placeholder
+          Expanded(
+            child: Container(
+              margin: EdgeInsets.symmetric(
+                horizontal: isCompact ? 8.0 : 12.0,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(
+                  isCompact ? AppLayout.buttonRadius * 0.8 : AppLayout.buttonRadius,
+                ),
+                border: Border.all(
+                  color: Colors.grey.shade200,
+                  width: 1.0,
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.add_box_outlined,
+                      size: isCompact ? 32.0 : 40.0,
+                      color: Colors.grey.shade400,
+                    ),
+                    SizedBox(height: isCompact ? 8.0 : 12.0),
+                    Text(
+                      'Additional note-blocks\ncoming soon',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: isCompact ? 12.0 : 14.0,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          SizedBox(height: isCompact ? 8.0 : 12.0),
+        ],
+      ),
+    );
+  }
+
+  /// Build applied tags section
+  Widget? _buildAppliedTags() {
+    if (widget.appliedQuickTags.isEmpty && widget.appliedRegularTags.isEmpty) {
+      return null;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.only(left: 12.0, right: 12.0, bottom: 8.0),
+      child: TagList(
+        quickTags: widget.appliedQuickTags,
+        regularTags: widget.appliedRegularTags,
+        onRemoveTag: widget.onTagRemoved,
+        isSmall: true,
+        isDraggable: true,
+        category: widget.category,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isCompact =
-        MediaQuery.of(context).size.width < AppLayout.tabletBreakpoint;
+    final dimensions = _getDimensions();
     final theme = Theme.of(context);
-    final iconSize = AppLayout.getIconSize(context);
-    final actionBarHeight = isCompact ? 33.75 : 45.0;
-    final padding = isCompact ? 10.0 : 16.0;
 
-    // Create a combined DragTarget for both tag addition and tag removal
     return DragTarget<Object>(
-      onAccept: (Object data) {
-        // Handle tag addition (existing functionality)
-        if (data is TagData && widget.onTagAdded != null) {
-          widget.onTagAdded!(data);
-        }
-      },
-      onWillAccept: (Object? data) {
-        // Accept TagData for addition
-        if (data is TagData) {
-          // Check if tag is already applied (existing logic)
-          final alreadyAppliedAsQuick =
-              widget.appliedQuickTags.any((t) => t.id == data.id);
-          final alreadyAppliedAsRegular =
-              widget.appliedRegularTags.any((t) => t.id == data.id);
-
-          return !alreadyAppliedAsQuick && !alreadyAppliedAsRegular;
-        }
-        // Accept TagRemovalData for position tracking
-        if (data is TagRemovalData) {
-          return true;
-        }
-        return false;
-      },
-      onLeave: (Object? data) {
-        // Handle when a tag for removal leaves the area
-        if (data is TagRemovalData) {
-          // Tag has been dragged outside - remove it
-          debugPrint('Tag dragged outside bounds: ${data.tag.label}');
-          data.onRemove();
-        }
-      },
+      onAccept: _handleDragAccept,
+      onWillAccept: _shouldAcceptDragData,
+      onLeave: _handleDragLeave,
       builder: (context, candidateItems, rejectedItems) {
-        // Add a subtle highlight effect when tag is hovering for addition
-        final bool isHighlighted =
-            candidateItems.any((item) => item is TagData);
+        final isHighlighted = candidateItems.any((item) => item is TagData);
 
-        return Container(
-          key: _noteInputKey, // Key for bounds detection
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          decoration: BoxDecoration(
-            // Light mode colors only
-            color: isHighlighted ? Colors.blue.shade50 : Colors.white,
-            border: Border.all(
-              color: isHighlighted
-                  ? theme.colorScheme.primary.withOpacity(0.5)
-                  : Colors.grey.shade300,
-            ),
-            borderRadius: BorderRadius.circular(AppLayout.buttonRadius),
-            // Add subtle shadow for depth
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
+        return _buildContentContainer(
+          isHighlighted: isHighlighted,
+          theme: theme,
           child: Column(
             children: [
-              // Top action bar with Format button instead of Save
+              // Top action bar
               TopActionBar(
-                height: actionBarHeight,
-                padding: padding,
-                iconSize: iconSize,
+                height: dimensions.actionBarHeight,
+                padding: dimensions.padding,
+                iconSize: dimensions.iconSize,
                 onDeletePressed: widget.onDelete,
                 onUndoPressed: widget.onUndo,
                 onFormatPressed: widget.onFormat,
               ),
 
-              // Divider after top action bar
+              // Divider
               Divider(
                 height: 1,
                 thickness: 1,
                 color: theme.dividerTheme.color,
               ),
 
-              // Note-blocks area - starting with Header Rectangle
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Header Rectangle - positioned at the very top
-                    HeaderRectangle(
-                      controller: _headerController,
-                      focusNode: widget.focusNode,
-                      isCompact: isCompact,
-                      onChanged: (text) {
-                        // Handle header text changes if needed
-                        debugPrint('Header changed: $text');
-                      },
-                    ),
-
-                    // Future note-blocks will be added here
-                    // For now, add a placeholder area for additional content
-                    Expanded(
-                      child: Container(
-                        margin: EdgeInsets.symmetric(
-                          horizontal: isCompact ? 8.0 : 12.0,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(isCompact
-                              ? AppLayout.buttonRadius * 0.8
-                              : AppLayout.buttonRadius),
-                          border: Border.all(
-                            color: Colors.grey.shade200,
-                            width: 1.0,
-                          ),
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.add_box_outlined,
-                                size: isCompact ? 32.0 : 40.0,
-                                color: Colors.grey.shade400,
-                              ),
-                              SizedBox(height: isCompact ? 8.0 : 12.0),
-                              Text(
-                                'Additional note-blocks\ncoming soon',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.grey.shade500,
-                                  fontSize: isCompact ? 12.0 : 14.0,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: isCompact ? 8.0 : 12.0),
-                  ],
-                ),
+              // Main note content
+              _buildNoteContent(
+                dimensions.actionBarHeight,
+                dimensions.padding,
+                dimensions.isCompact,
               ),
 
-              // Display applied tags at the bottom - separated by type with category-specific spacing
-              if (widget.appliedQuickTags.isNotEmpty ||
-                  widget.appliedRegularTags.isNotEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.only(
-                      left: 12.0, right: 12.0, bottom: 8.0),
-                  child: TagList(
-                    quickTags: widget.appliedQuickTags,
-                    regularTags: widget.appliedRegularTags,
-                    onRemoveTag: widget.onTagRemoved,
-                    isSmall: true,
-                    isDraggable: true, // Enable drag-to-remove for applied tags
-                    category:
-                        widget.category, // Pass category for optimized spacing
-                  ),
-                ),
+              // Applied tags section
+              if (_buildAppliedTags() != null) _buildAppliedTags()!,
 
-              // Divider before bottom action bar
+              // Divider
               Divider(
                 height: 1,
                 thickness: 1,
@@ -258,9 +280,9 @@ class _NoteInputAreaState extends State<NoteInputArea> {
 
               // Bottom action bar
               BottomActionButtons(
-                height: actionBarHeight,
-                padding: padding,
-                iconSize: iconSize,
+                height: dimensions.actionBarHeight,
+                padding: dimensions.padding,
+                iconSize: dimensions.iconSize,
                 onCameraPressed: widget.onCamera,
                 onMicPressed: widget.onMic,
                 onLinkPressed: widget.onLink,
@@ -298,43 +320,29 @@ class TopActionBar extends StatelessWidget {
       height: height,
       padding: EdgeInsets.symmetric(horizontal: padding),
       child: Row(
-        // Evenly distribute the 3 buttons
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // Spacer for better balance
           const Spacer(flex: 1),
-
-          // Delete button
           ActionButton(
             icon: Icons.delete_outline,
             onPressed: onDeletePressed,
             iconSize: iconSize,
             tooltip: 'Delete note',
           ),
-
-          // Center spacer
           const Spacer(flex: 2),
-
-          // Undo button
           ActionButton(
             icon: Icons.replay_outlined,
             onPressed: onUndoPressed,
             iconSize: iconSize,
             tooltip: 'Undo',
           ),
-
-          // Center spacer
           const Spacer(flex: 2),
-
-          // Format button (changed from Save button)
           ActionButton(
             icon: Icons.format_align_left,
             onPressed: onFormatPressed,
             iconSize: iconSize,
             tooltip: 'Format text',
           ),
-
-          // Spacer for better balance
           const Spacer(flex: 1),
         ],
       ),
@@ -369,40 +377,27 @@ class BottomActionButtons extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // Spacer for better balance
           const Spacer(flex: 1),
-
-          // Camera button
           ActionButton(
             icon: Icons.camera_alt_outlined,
             onPressed: onCameraPressed,
             iconSize: iconSize,
             tooltip: 'Take photo',
           ),
-
-          // Center spacer
           const Spacer(flex: 2),
-
-          // Mic button
           ActionButton(
             icon: Icons.mic_none_outlined,
             onPressed: onMicPressed,
             iconSize: iconSize,
             tooltip: 'Record audio',
           ),
-
-          // Center spacer
           const Spacer(flex: 2),
-
-          // Link button
           ActionButton(
             icon: Icons.link,
             onPressed: onLinkPressed,
             iconSize: iconSize,
             tooltip: 'Add link',
           ),
-
-          // Spacer for better balance
           const Spacer(flex: 1),
         ],
       ),
