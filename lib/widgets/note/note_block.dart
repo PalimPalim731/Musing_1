@@ -157,34 +157,36 @@ class _NoteBlockState extends State<NoteBlock> {
     }
   }
 
-  /// Build hint text when input is empty and unfocused
-  Widget? _buildHintText() {
-    if (_isFocused || widget.controller.text.isNotEmpty) {
-      return null;
-    }
-
-    final fontSize = AppLayout.getFontSize(
-      context, 
-      baseSize: widget.isCompact ? 14.0 : 16.0,
-    );
-
-    return Positioned.fill(
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: Padding(
-          padding: EdgeInsets.only(
-            top: widget.isCompact ? 2.0 : 4.0,
-          ),
-          child: Text(
-            widget.hintText ?? 'Start typing your note...',
-            style: TextStyle(
-              fontSize: fontSize,
-              color: Colors.grey.shade500,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ),
+  /// Build individual dot indicator
+  Widget _buildDot() {
+    final theme = Theme.of(context);
+    final dotSize = widget.isCompact ? 3.0 : 4.0;
+    
+    return Container(
+      width: dotSize,
+      height: dotSize,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: _isFocused
+            ? theme.colorScheme.primary.withOpacity(0.6)
+            : Colors.grey.shade400,
       ),
+    );
+  }
+
+  /// Build the three dots indicator
+  Widget _buildDotsIndicator() {
+    final dotSpacing = widget.isCompact ? 3.0 : 4.0;
+    
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildDot(),
+        SizedBox(width: dotSpacing),
+        _buildDot(),
+        SizedBox(width: dotSpacing),
+        _buildDot(),
+      ],
     );
   }
 
@@ -260,8 +262,13 @@ class _NoteBlockState extends State<NoteBlock> {
                   },
                 ),
 
-                // Hint text overlay
-                if (_buildHintText() != null) _buildHintText()!,
+                // Three dots indicator (visible when unfocused and empty)
+                if (!_isFocused && widget.controller.text.isEmpty)
+                  Positioned(
+                    bottom: widget.isCompact ? 4.0 : 6.0,
+                    left: 0.0,
+                    child: _buildDotsIndicator(),
+                  ),
               ],
             ),
           ),
