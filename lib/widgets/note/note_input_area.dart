@@ -7,12 +7,15 @@ import '../tag/tag_list.dart';
 import '../tag/tag_chip.dart';
 import 'action_button.dart';
 import 'header_rectangle.dart';
+import 'note_block.dart';
 
 /// Note input area with structured note-blocks and action buttons
 /// Light mode only
 class NoteInputArea extends StatefulWidget {
-  final TextEditingController controller;
-  final FocusNode? focusNode;
+  final TextEditingController headerController;
+  final TextEditingController noteController;
+  final FocusNode? headerFocusNode;
+  final FocusNode? noteFocusNode;
   final List<TagData> appliedQuickTags;
   final List<TagData> appliedRegularTags;
   final Function(TagData)? onTagAdded;
@@ -29,8 +32,10 @@ class NoteInputArea extends StatefulWidget {
 
   const NoteInputArea({
     super.key,
-    required this.controller,
-    this.focusNode,
+    required this.headerController,
+    required this.noteController,
+    this.headerFocusNode,
+    this.noteFocusNode,
     this.appliedQuickTags = const [],
     this.appliedRegularTags = const [],
     this.onTagAdded,
@@ -47,8 +52,8 @@ class NoteInputArea extends StatefulWidget {
   // Legacy constructor for backward compatibility
   const NoteInputArea.legacy({
     super.key,
-    required this.controller,
-    this.focusNode,
+    required TextEditingController controller,
+    FocusNode? focusNode,
     List<TagData> appliedTags = const [],
     this.onTagAdded,
     this.onTagRemoved,
@@ -59,7 +64,11 @@ class NoteInputArea extends StatefulWidget {
     this.onCamera,
     this.onMic,
     this.onLink,
-  })  : appliedQuickTags = const [],
+  })  : headerController = controller,
+        noteController = controller,
+        headerFocusNode = focusNode,
+        noteFocusNode = null,
+        appliedQuickTags = const [],
         appliedRegularTags = appliedTags;
 
   @override
@@ -69,14 +78,11 @@ class NoteInputArea extends StatefulWidget {
 class _NoteInputAreaState extends State<NoteInputArea> {
   // Key for drag detection bounds
   final GlobalKey _noteInputKey = GlobalKey();
-  
-  // Header controller (currently shares the same controller)
-  late TextEditingController _headerController;
 
   @override
   void initState() {
     super.initState();
-    _headerController = widget.controller;
+    // Controllers are now passed in separately
   }
 
   /// Get responsive dimensions
@@ -152,52 +158,24 @@ class _NoteInputAreaState extends State<NoteInputArea> {
         children: [
           // Header Rectangle note-block
           HeaderRectangle(
-            controller: _headerController,
-            focusNode: widget.focusNode,
+            controller: widget.headerController,
+            focusNode: widget.headerFocusNode,
             isCompact: isCompact,
             onChanged: (text) {
               debugPrint('Header changed: $text');
             },
           ),
 
-          // Future note-blocks placeholder
+          // Main Note Block
           Expanded(
-            child: Container(
-              margin: EdgeInsets.symmetric(
-                horizontal: isCompact ? 8.0 : 12.0,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(
-                  isCompact ? AppLayout.buttonRadius * 0.8 : AppLayout.buttonRadius,
-                ),
-                border: Border.all(
-                  color: Colors.grey.shade200,
-                  width: 1.0,
-                ),
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.add_box_outlined,
-                      size: isCompact ? 32.0 : 40.0,
-                      color: Colors.grey.shade400,
-                    ),
-                    SizedBox(height: isCompact ? 8.0 : 12.0),
-                    Text(
-                      'Additional note-blocks\ncoming soon',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.grey.shade500,
-                        fontSize: isCompact ? 12.0 : 14.0,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            child: NoteBlock(
+              controller: widget.noteController,
+              focusNode: widget.noteFocusNode,
+              isCompact: isCompact,
+              hintText: 'Write your note here...',
+              onChanged: (text) {
+                debugPrint('Note content changed: ${text.length} characters');
+              },
             ),
           ),
 

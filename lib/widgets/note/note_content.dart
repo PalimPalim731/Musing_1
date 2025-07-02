@@ -8,8 +8,10 @@ import '../rectangle/rectangle_bar.dart';
 
 /// Main content area with note input and rectangle bar
 class NoteContent extends StatelessWidget {
+  final TextEditingController headerController;
   final TextEditingController noteController;
-  final FocusNode? focusNode;
+  final FocusNode? headerFocusNode;
+  final FocusNode? noteFocusNode;
   final List<TagData> appliedQuickTags; // Rectangle-based tags (3 chars)
   final List<TagData> appliedRegularTags; // Sidebar tags (longer names)
   final Function(TagData)? onTagAdded;
@@ -26,8 +28,10 @@ class NoteContent extends StatelessWidget {
 
   const NoteContent({
     super.key,
+    required this.headerController,
     required this.noteController,
-    this.focusNode,
+    this.headerFocusNode,
+    this.noteFocusNode,
     this.appliedQuickTags = const [],
     this.appliedRegularTags = const [],
     this.onTagAdded,
@@ -44,8 +48,8 @@ class NoteContent extends StatelessWidget {
   // Legacy constructor for backward compatibility
   const NoteContent.legacy({
     super.key,
-    required this.noteController,
-    this.focusNode,
+    required TextEditingController noteController,
+    FocusNode? focusNode,
     List<TagData> appliedTags = const [],
     this.onTagAdded,
     this.onTagRemoved,
@@ -56,7 +60,11 @@ class NoteContent extends StatelessWidget {
     this.onCamera,
     this.onMic,
     this.onLink,
-  })  : appliedQuickTags = const [],
+  })  : headerController = noteController,
+        noteController = noteController,
+        headerFocusNode = focusNode,
+        noteFocusNode = null,
+        appliedQuickTags = const [],
         appliedRegularTags = appliedTags;
 
   @override
@@ -80,8 +88,10 @@ class NoteContent extends StatelessWidget {
         // Note input area with callbacks passed through
         Expanded(
           child: NoteInputArea(
-            controller: noteController,
-            focusNode: focusNode,
+            headerController: headerController,
+            noteController: noteController,
+            headerFocusNode: headerFocusNode,
+            noteFocusNode: noteFocusNode,
             appliedQuickTags: appliedQuickTags,
             appliedRegularTags: appliedRegularTags,
             onTagAdded: onTagAdded,
