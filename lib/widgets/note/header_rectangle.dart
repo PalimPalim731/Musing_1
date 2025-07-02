@@ -53,6 +53,19 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
     });
   }
 
+  Widget _buildDot(ThemeData theme) {
+    return Container(
+      width: widget.isCompact ? 3.0 : 4.0,
+      height: widget.isCompact ? 3.0 : 4.0,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: _isFocused
+            ? theme.colorScheme.primary.withOpacity(0.6)
+            : Colors.grey.shade400,
+      ),
+    );
+  }
+
   /// Calculate how many lines the text should occupy based on 21-character limit per line
   int _calculateTextLines(String text) {
     if (text.isEmpty) return 1;
@@ -216,7 +229,27 @@ class _HeaderRectangleState extends State<HeaderRectangle> {
                   textAlignVertical: TextAlignVertical
                       .center, // Center text vertically for equal spacing
                 ),
-                // Three dots removed entirely - no more bottom space constraints!
+
+                // Three discrete dots positioned at bottom left corner (disappear when focused)
+                if (!_isFocused)
+                  Positioned(
+                    bottom: widget.isCompact
+                        ? 2.0
+                        : 3.0, // Adjusted for new container size
+                    left: widget.isCompact
+                        ? 0.0
+                        : 0.0, // Match exactly where text starts
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildDot(theme),
+                        SizedBox(width: widget.isCompact ? 3.0 : 4.0),
+                        _buildDot(theme),
+                        SizedBox(width: widget.isCompact ? 3.0 : 4.0),
+                        _buildDot(theme),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
