@@ -166,18 +166,19 @@ class _NoteInputAreaState extends State<NoteInputArea> {
             },
           ),
 
-          // Main Note Block
-          Expanded(
-            child: NoteBlock(
-              controller: widget.noteController,
-              focusNode: widget.noteFocusNode,
-              isCompact: isCompact,
-              hintText: 'Write your note here...',
-              onChanged: (text) {
-                debugPrint('Note content changed: ${text.length} characters');
-              },
-            ),
+          // Main Note Block - REMOVED Expanded wrapper to allow custom sizing
+          NoteBlock(
+            controller: widget.noteController,
+            focusNode: widget.noteFocusNode,
+            isCompact: isCompact,
+            hintText: 'Write your note here...',
+            onChanged: (text) {
+              debugPrint('Note content changed: ${text.length} characters');
+            },
           ),
+
+          // Spacer to push content to the top and fill remaining space
+          const Spacer(),
 
           SizedBox(height: isCompact ? 8.0 : 12.0),
         ],

@@ -1,9 +1,10 @@
 // widgets/note/note_block.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../config/constants/layout.dart';
 
-/// Main Note Block - A larger text input area for note content
+/// Main Note Block - A dynamically expanding text input area for note content
 /// Positioned below the header rectangle
 class NoteBlock extends StatefulWidget {
   final TextEditingController controller;
@@ -28,6 +29,10 @@ class NoteBlock extends StatefulWidget {
 }
 
 class _NoteBlockState extends State<NoteBlock> {
+  // Constants for the note block
+  static const int _maxCharacters = 400;
+  static const int _averageCharsPerLine = 45; // Estimated characters per line
+
   // State variables
   bool _isFocused = false;
   late FocusNode _internalFocusNode;
@@ -67,20 +72,44 @@ class _NoteBlockState extends State<NoteBlock> {
   }
 
   /// Calculate responsive dimensions based on compact mode
-  ({double minHeight, double padding, double margin}) _getDimensions() {
+  ({double baseHeight, double lineHeight, double padding, double margin}) _getDimensions() {
     if (widget.isCompact) {
       return (
-        minHeight: 120.0,
+        baseHeight: 60.0, // Reduced from 120.0 to double the header size
+        lineHeight: 18.0,
         padding: 12.0,
         margin: 8.0,
       );
     } else {
       return (
-        minHeight: 150.0,
+        baseHeight: 70.0, // Reduced from 150.0 to double the header size
+        lineHeight: 22.0,
         padding: 16.0,
         margin: 12.0,
       );
     }
+  }
+
+  /// Calculate dynamic height based on text content
+  double _calculateDynamicHeight() {
+    final dimensions = _getDimensions();
+    final text = widget.controller.text;
+    
+    if (text.isEmpty) {
+      return dimensions.baseHeight;
+    }
+
+    // Calculate approximate number of lines based on character count and actual line breaks
+    final manualLineBreaks = '\n'.allMatches(text).length;
+    final estimatedWrappedLines = (text.length / _averageCharsPerLine).ceil();
+    final totalLines = manualLineBreaks + estimatedWrappedLines;
+    
+    // Ensure at least 1 line
+    final lines = totalLines < 1 ? 1 : totalLines;
+    
+    // Calculate height: base height + additional lines
+    final additionalHeight = (lines - 1) * dimensions.lineHeight;
+    return dimensions.baseHeight + additionalHeight;
   }
 
   /// Get border and background colors based on state
@@ -159,41 +188,6 @@ class _NoteBlockState extends State<NoteBlock> {
     );
   }
 
-  /// Build character count indicator (bottom right when focused)
-  Widget? _buildCharacterCount() {
-    if (!_isFocused) return null;
-
-    final charCount = widget.controller.text.length;
-    final fontSize = widget.isCompact ? 10.0 : 12.0;
-
-    return Positioned(
-      bottom: widget.isCompact ? 4.0 : 6.0,
-      right: widget.isCompact ? 6.0 : 8.0,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: widget.isCompact ? 4.0 : 6.0,
-          vertical: widget.isCompact ? 2.0 : 3.0,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.9),
-          borderRadius: BorderRadius.circular(widget.isCompact ? 8.0 : 10.0),
-          border: Border.all(
-            color: Colors.grey.shade300,
-            width: 0.5,
-          ),
-        ),
-        child: Text(
-          '$charCount',
-          style: TextStyle(
-            fontSize: fontSize,
-            color: Colors.grey.shade600,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final dimensions = _getDimensions();
@@ -206,10 +200,10 @@ class _NoteBlockState extends State<NoteBlock> {
         ? AppLayout.buttonRadius * 0.8 
         : AppLayout.buttonRadius;
 
-    return Container(
-      constraints: BoxConstraints(
-        minHeight: dimensions.minHeight,
-      ),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200), // Smooth expansion animation
+      curve: Curves.easeOutCubic,
+      height: _calculateDynamicHeight(),
       margin: EdgeInsets.symmetric(
         horizontal: dimensions.margin,
         vertical: widget.isCompact ? 6.0 : 8.0,
@@ -256,17 +250,18 @@ class _NoteBlockState extends State<NoteBlock> {
                   textCapitalization: TextCapitalization.sentences,
                   textAlignVertical: TextAlignVertical.top,
                   keyboardType: TextInputType.multiline,
+                  // Add character limit
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(_maxCharacters),
+                  ],
                   onChanged: (text) {
-                    setState(() {}); // Trigger character count update
+                    setState(() {}); // Trigger height recalculation
                     widget.onChanged?.call(text);
                   },
                 ),
 
                 // Hint text overlay
                 if (_buildHintText() != null) _buildHintText()!,
-
-                // Character count indicator
-                if (_buildCharacterCount() != null) _buildCharacterCount()!,
               ],
             ),
           ),
