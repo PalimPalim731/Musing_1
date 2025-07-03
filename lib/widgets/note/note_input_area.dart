@@ -178,34 +178,38 @@ class _NoteInputAreaState extends State<NoteInputArea> {
             },
           ),
 
-          // Multiple Note Blocks
+          // Multiple Note Blocks with Plus/Minus buttons positioned after the last block
           Expanded(
             child: ListView.builder(
-              itemCount: widget.noteControllers.length,
+              itemCount: widget.noteControllers.length + 1, // +1 for the buttons
               itemBuilder: (context, index) {
-                return NoteBlock(
-                  controller: widget.noteControllers[index],
-                  focusNode: index < widget.noteFocusNodes.length 
-                      ? widget.noteFocusNodes[index]
-                      : null,
-                  isCompact: isCompact,
-                  hintText: index == 0 
-                      ? 'Write your note here...' 
-                      : 'Continue your note...',
-                  onChanged: (text) {
-                    debugPrint('Note block ${index + 1} changed: ${text.length} characters');
-                  },
-                );
+                // Show note blocks first
+                if (index < widget.noteControllers.length) {
+                  return NoteBlock(
+                    controller: widget.noteControllers[index],
+                    focusNode: index < widget.noteFocusNodes.length 
+                        ? widget.noteFocusNodes[index]
+                        : null,
+                    isCompact: isCompact,
+                    hintText: index == 0 
+                        ? 'Write your note here...' 
+                        : 'Continue your note...',
+                    onChanged: (text) {
+                      debugPrint('Note block ${index + 1} changed: ${text.length} characters');
+                    },
+                  );
+                } else {
+                  // Show Plus/Minus buttons after the last note block
+                  return NoteBlockButtons(
+                    onAddBlock: widget.onAddNoteBlock,
+                    onRemoveBlock: widget.onRemoveNoteBlock,
+                    canRemoveBlock: widget.noteControllers.length > 1, // Can't remove if only one block
+                    canAddBlock: widget.noteControllers.length < NoteInputArea.maxNoteBlocks, // Can't add if at max blocks
+                    isCompact: isCompact,
+                  );
+                }
               },
             ),
-          ),
-
-          // Plus/Minus buttons for adding/removing note blocks
-          NoteBlockButtons(
-            onAddBlock: widget.onAddNoteBlock,
-            onRemoveBlock: widget.onRemoveNoteBlock,
-            canRemoveBlock: widget.noteControllers.length > 1, // Can't remove if only one block
-            isCompact: isCompact,
           ),
 
           SizedBox(height: isCompact ? 8.0 : 12.0),
