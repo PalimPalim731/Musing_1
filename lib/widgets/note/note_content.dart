@@ -3,16 +3,15 @@
 import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 import '../../models/tag.dart';
+import '../../models/note_block_data.dart';
 import 'note_input_area.dart';
 import '../rectangle/rectangle_bar.dart';
 
 /// Main content area with note input and rectangle bar
 class NoteContent extends StatelessWidget {
   final TextEditingController headerController;
-  final List<TextEditingController>
-      noteControllers; // Changed to support multiple blocks
+  final List<NoteBlockData> noteBlocks; // Changed to use NoteBlockData
   final FocusNode? headerFocusNode;
-  final List<FocusNode?> noteFocusNodes; // Changed to support multiple blocks
   final List<TagData> appliedQuickTags; // Rectangle-based tags (3 chars)
   final List<TagData> appliedRegularTags; // Sidebar tags (longer names)
   final Function(TagData)? onTagAdded;
@@ -21,6 +20,8 @@ class NoteContent extends StatelessWidget {
 
   // Note block management callbacks
   final VoidCallback? onAddNoteBlock;
+  final VoidCallback?
+      onAddIndentedNoteBlock; // New callback for indented blocks
   final VoidCallback? onRemoveNoteBlock;
 
   // Action callbacks
@@ -34,15 +35,15 @@ class NoteContent extends StatelessWidget {
   const NoteContent({
     super.key,
     required this.headerController,
-    required this.noteControllers,
+    required this.noteBlocks,
     this.headerFocusNode,
-    required this.noteFocusNodes,
     this.appliedQuickTags = const [],
     this.appliedRegularTags = const [],
     this.onTagAdded,
     this.onTagRemoved,
     required this.selectedCategory, // Add required category parameter
     this.onAddNoteBlock,
+    this.onAddIndentedNoteBlock,
     this.onRemoveNoteBlock,
     this.onDelete,
     this.onUndo,
@@ -62,6 +63,7 @@ class NoteContent extends StatelessWidget {
     this.onTagRemoved,
     this.selectedCategory = 'Private', // Default category for legacy
     this.onAddNoteBlock,
+    this.onAddIndentedNoteBlock,
     this.onRemoveNoteBlock,
     this.onDelete,
     this.onUndo,
@@ -70,9 +72,10 @@ class NoteContent extends StatelessWidget {
     this.onMic,
     this.onLink,
   })  : headerController = noteController,
-        noteControllers = [noteController],
+        noteBlocks = [
+          NoteBlockData(controller: noteController, focusNode: FocusNode())
+        ],
         headerFocusNode = focusNode,
-        noteFocusNodes = [null],
         appliedQuickTags = const [],
         appliedRegularTags = appliedTags;
 
@@ -98,9 +101,8 @@ class NoteContent extends StatelessWidget {
         Expanded(
           child: NoteInputArea(
             headerController: headerController,
-            noteControllers: noteControllers,
+            noteBlocks: noteBlocks,
             headerFocusNode: headerFocusNode,
-            noteFocusNodes: noteFocusNodes,
             appliedQuickTags: appliedQuickTags,
             appliedRegularTags: appliedRegularTags,
             onTagAdded: onTagAdded,
@@ -108,6 +110,7 @@ class NoteContent extends StatelessWidget {
             category:
                 selectedCategory, // Pass the selected category for spacing optimization
             onAddNoteBlock: onAddNoteBlock,
+            onAddIndentedNoteBlock: onAddIndentedNoteBlock,
             onRemoveNoteBlock: onRemoveNoteBlock,
             onDelete: onDelete,
             onUndo: onUndo,

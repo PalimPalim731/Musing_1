@@ -13,6 +13,8 @@ class NoteBlock extends StatefulWidget {
   final Function(String)? onChanged;
   final VoidCallback? onTap;
   final String? hintText;
+  final int
+      indentLevel; // New parameter for indentation level (0 = normal, 1+ = indented)
 
   const NoteBlock({
     super.key,
@@ -22,6 +24,7 @@ class NoteBlock extends StatefulWidget {
     this.onChanged,
     this.onTap,
     this.hintText,
+    this.indentLevel = 0, // Default to no indentation
   });
 
   @override
@@ -71,14 +74,25 @@ class _NoteBlockState extends State<NoteBlock> {
     });
   }
 
-  /// Calculate responsive dimensions based on compact mode
-  ({double baseHeight, double lineHeight, double padding, double margin}) _getDimensions() {
+  /// Calculate responsive dimensions based on compact mode and indentation
+  ({
+    double baseHeight,
+    double lineHeight,
+    double padding,
+    double margin,
+    double indentOffset
+  }) _getDimensions() {
+    // Base indentation per level
+    final baseIndent = widget.isCompact ? 16.0 : 20.0;
+    final indentOffset = widget.indentLevel * baseIndent;
+
     if (widget.isCompact) {
       return (
         baseHeight: 60.0, // Reduced from 120.0 to double the header size
         lineHeight: 18.0,
         padding: 12.0,
         margin: 8.0,
+        indentOffset: indentOffset,
       );
     } else {
       return (
@@ -86,6 +100,7 @@ class _NoteBlockState extends State<NoteBlock> {
         lineHeight: 22.0,
         padding: 16.0,
         margin: 12.0,
+        indentOffset: indentOffset,
       );
     }
   }
@@ -94,7 +109,7 @@ class _NoteBlockState extends State<NoteBlock> {
   double _calculateDynamicHeight() {
     final dimensions = _getDimensions();
     final text = widget.controller.text;
-    
+
     if (text.isEmpty) {
       return dimensions.baseHeight;
     }
@@ -103,10 +118,10 @@ class _NoteBlockState extends State<NoteBlock> {
     final manualLineBreaks = '\n'.allMatches(text).length;
     final estimatedWrappedLines = (text.length / _averageCharsPerLine).ceil();
     final totalLines = manualLineBreaks + estimatedWrappedLines;
-    
+
     // Ensure at least 1 line
     final lines = totalLines < 1 ? 1 : totalLines;
-    
+
     // Calculate height: base height + additional lines
     final additionalHeight = (lines - 1) * dimensions.lineHeight;
     return dimensions.baseHeight + additionalHeight;
@@ -115,7 +130,7 @@ class _NoteBlockState extends State<NoteBlock> {
   /// Get border and background colors based on state
   ({Color borderColor, Color backgroundColor}) _getColors() {
     final theme = Theme.of(context);
-    
+
     if (_isFocused) {
       return (
         borderColor: theme.colorScheme.primary,
@@ -161,7 +176,7 @@ class _NoteBlockState extends State<NoteBlock> {
   Widget _buildDot() {
     final theme = Theme.of(context);
     final dotSize = widget.isCompact ? 3.0 : 4.0;
-    
+
     return Container(
       width: dotSize,
       height: dotSize,
@@ -177,7 +192,7 @@ class _NoteBlockState extends State<NoteBlock> {
   /// Build the three dots indicator
   Widget _buildDotsIndicator() {
     final dotSpacing = widget.isCompact ? 3.0 : 4.0;
-    
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -195,20 +210,23 @@ class _NoteBlockState extends State<NoteBlock> {
     final dimensions = _getDimensions();
     final colors = _getColors();
     final fontSize = AppLayout.getFontSize(
-      context, 
+      context,
       baseSize: widget.isCompact ? 14.0 : 16.0,
     );
-    final borderRadius = widget.isCompact 
-        ? AppLayout.buttonRadius * 0.8 
+    final borderRadius = widget.isCompact
+        ? AppLayout.buttonRadius * 0.8
         : AppLayout.buttonRadius;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200), // Smooth expansion animation
       curve: Curves.easeOutCubic,
       height: _calculateDynamicHeight(),
-      margin: EdgeInsets.symmetric(
-        horizontal: dimensions.margin,
-        vertical: widget.isCompact ? 6.0 : 8.0,
+      margin: EdgeInsets.only(
+        left: dimensions.margin +
+            dimensions.indentOffset, // Apply left indentation
+        right: dimensions.margin,
+        top: widget.isCompact ? 6.0 : 8.0,
+        bottom: widget.isCompact ? 6.0 : 8.0,
       ),
       decoration: BoxDecoration(
         color: colors.backgroundColor,
@@ -228,49 +246,76 @@ class _NoteBlockState extends State<NoteBlock> {
             _internalFocusNode.requestFocus();
             widget.onTap?.call();
           },
-          child: Padding(
-            padding: EdgeInsets.all(dimensions.padding),
-            child: Stack(
-              children: [
-                // Main text input field
-                TextField(
-                  controller: widget.controller,
-                  focusNode: _internalFocusNode,
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: FontWeight.w400,
-                    color: Theme.of(context).colorScheme.onSurface,
-                    height: 1.4, // Better line spacing for longer text
+          child: Row(
+            children: [
+              // Indentation indicator (bullet point for indented blocks)
+              if (widget.indentLevel > 0)
+                Container(
+                  width: 16.0,
+                  padding: EdgeInsets.only(left: dimensions.padding * 0.5),
+                  child: Center(
+                    child: Container(
+                      width: widget.isCompact ? 4.0 : 5.0,
+                      height: widget.isCompact ? 4.0 : 5.0,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.6),
+                      ),
+                    ),
                   ),
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                    isDense: true,
-                    isCollapsed: true,
-                  ),
-                  maxLines: null, // Allow unlimited lines
-                  textCapitalization: TextCapitalization.sentences,
-                  textAlignVertical: TextAlignVertical.top,
-                  keyboardType: TextInputType.multiline,
-                  // Add character limit
-                  inputFormatters: [
-                    LengthLimitingTextInputFormatter(_maxCharacters),
-                  ],
-                  onChanged: (text) {
-                    setState(() {}); // Trigger height recalculation
-                    widget.onChanged?.call(text);
-                  },
                 ),
 
-                // Three dots indicator (visible when unfocused and empty)
-                if (!_isFocused && widget.controller.text.isEmpty)
-                  Positioned(
-                    bottom: widget.isCompact ? 4.0 : 6.0,
-                    left: 0.0,
-                    child: _buildDotsIndicator(),
+              // Main content area
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(dimensions.padding),
+                  child: Stack(
+                    children: [
+                      // Main text input field
+                      TextField(
+                        controller: widget.controller,
+                        focusNode: _internalFocusNode,
+                        style: TextStyle(
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.w400,
+                          color: Theme.of(context).colorScheme.onSurface,
+                          height: 1.4, // Better line spacing for longer text
+                        ),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                          isDense: true,
+                          isCollapsed: true,
+                        ),
+                        maxLines: null, // Allow unlimited lines
+                        textCapitalization: TextCapitalization.sentences,
+                        textAlignVertical: TextAlignVertical.top,
+                        keyboardType: TextInputType.multiline,
+                        // Add character limit
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(_maxCharacters),
+                        ],
+                        onChanged: (text) {
+                          setState(() {}); // Trigger height recalculation
+                          widget.onChanged?.call(text);
+                        },
+                      ),
+
+                      // Three dots indicator (visible when unfocused and empty)
+                      if (!_isFocused && widget.controller.text.isEmpty)
+                        Positioned(
+                          bottom: widget.isCompact ? 4.0 : 6.0,
+                          left: 0.0,
+                          child: _buildDotsIndicator(),
+                        ),
+                    ],
                   ),
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

@@ -6,6 +6,7 @@ import '../../config/constants/layout.dart';
 /// Plus and minus buttons for adding/removing note blocks
 class NoteBlockButtons extends StatelessWidget {
   final VoidCallback? onAddBlock;
+  final VoidCallback? onAddIndentedBlock; // New callback for long press
   final VoidCallback? onRemoveBlock;
   final bool canRemoveBlock; // Whether removal is allowed
   final bool canAddBlock; // Whether adding more blocks is allowed
@@ -14,6 +15,7 @@ class NoteBlockButtons extends StatelessWidget {
   const NoteBlockButtons({
     super.key,
     this.onAddBlock,
+    this.onAddIndentedBlock,
     this.onRemoveBlock,
     this.canRemoveBlock = true,
     this.canAddBlock = true, // Default to allowing add
@@ -46,18 +48,9 @@ class NoteBlockButtons extends StatelessWidget {
               button: true,
               child: Material(
                 color: Colors.transparent,
-                child: InkWell(
+                child: GestureDetector(
                   onTap: canAddBlock ? onAddBlock : null,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(borderRadius),
-                    bottomLeft: Radius.circular(borderRadius),
-                  ),
-                  splashColor: canAddBlock
-                      ? theme.colorScheme.primary.withOpacity(0.15)
-                      : null,
-                  highlightColor: canAddBlock
-                      ? theme.colorScheme.primary.withOpacity(0.1)
-                      : null,
+                  onLongPress: canAddBlock ? onAddIndentedBlock : null,
                   child: Container(
                     decoration: BoxDecoration(
                       color: canAddBlock

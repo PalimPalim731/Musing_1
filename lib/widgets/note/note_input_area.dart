@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 import '../../models/tag.dart';
+import '../../models/note_block_data.dart';
 import '../tag/tag_list.dart';
 import '../tag/tag_chip.dart';
 import 'action_button.dart';
@@ -14,9 +15,8 @@ import 'note_block_buttons.dart';
 /// Light mode only
 class NoteInputArea extends StatefulWidget {
   final TextEditingController headerController;
-  final List<TextEditingController> noteControllers; // Changed to support multiple blocks
+  final List<NoteBlockData> noteBlocks; // Changed to use NoteBlockData
   final FocusNode? headerFocusNode;
-  final List<FocusNode?> noteFocusNodes; // Changed to support multiple blocks
   final List<TagData> appliedQuickTags;
   final List<TagData> appliedRegularTags;
   final Function(TagData)? onTagAdded;
@@ -25,6 +25,8 @@ class NoteInputArea extends StatefulWidget {
 
   // Note block management callbacks
   final VoidCallback? onAddNoteBlock;
+  final VoidCallback?
+      onAddIndentedNoteBlock; // New callback for indented blocks
   final VoidCallback? onRemoveNoteBlock;
 
   // Action callbacks
@@ -41,15 +43,15 @@ class NoteInputArea extends StatefulWidget {
   const NoteInputArea({
     super.key,
     required this.headerController,
-    required this.noteControllers,
+    required this.noteBlocks,
     this.headerFocusNode,
-    required this.noteFocusNodes,
     this.appliedQuickTags = const [],
     this.appliedRegularTags = const [],
     this.onTagAdded,
     this.onTagRemoved,
     this.category,
     this.onAddNoteBlock,
+    this.onAddIndentedNoteBlock,
     this.onRemoveNoteBlock,
     this.onDelete,
     this.onUndo,
@@ -69,6 +71,7 @@ class NoteInputArea extends StatefulWidget {
     this.onTagRemoved,
     this.category,
     this.onAddNoteBlock,
+    this.onAddIndentedNoteBlock,
     this.onRemoveNoteBlock,
     this.onDelete,
     this.onUndo,
@@ -77,9 +80,10 @@ class NoteInputArea extends StatefulWidget {
     this.onMic,
     this.onLink,
   })  : headerController = controller,
-        noteControllers = [controller],
+        noteBlocks = [
+          NoteBlockData(controller: controller, focusNode: FocusNode())
+        ],
         headerFocusNode = focusNode,
-        noteFocusNodes = [null],
         appliedQuickTags = const [],
         appliedRegularTags = appliedTags;
 
@@ -98,8 +102,10 @@ class _NoteInputAreaState extends State<NoteInputArea> {
   }
 
   /// Get responsive dimensions
-  ({bool isCompact, double iconSize, double actionBarHeight, double padding}) _getDimensions() {
-    final isCompact = MediaQuery.of(context).size.width < AppLayout.tabletBreakpoint;
+  ({bool isCompact, double iconSize, double actionBarHeight, double padding})
+      _getDimensions() {
+    final isCompact =
+        MediaQuery.of(context).size.width < AppLayout.tabletBreakpoint;
     return (
       isCompact: isCompact,
       iconSize: AppLayout.getIconSize(context),
@@ -111,8 +117,10 @@ class _NoteInputAreaState extends State<NoteInputArea> {
   /// Check if dragged data should be accepted
   bool _shouldAcceptDragData(Object? data) {
     if (data is TagData) {
-      final alreadyAppliedAsQuick = widget.appliedQuickTags.any((t) => t.id == data.id);
-      final alreadyAppliedAsRegular = widget.appliedRegularTags.any((t) => t.id == data.id);
+      final alreadyAppliedAsQuick =
+          widget.appliedQuickTags.any((t) => t.id == data.id);
+      final alreadyAppliedAsRegular =
+          widget.appliedRegularTags.any((t) => t.id == data.id);
       return !alreadyAppliedAsQuick && !alreadyAppliedAsRegular;
     }
     return data is TagRemovalData;
@@ -163,7 +171,8 @@ class _NoteInputAreaState extends State<NoteInputArea> {
   }
 
   /// Build the main note content area
-  Widget _buildNoteContent(double actionBarHeight, double padding, bool isCompact) {
+  Widget _buildNoteContent(
+      double actionBarHeight, double padding, bool isCompact) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -181,30 +190,38 @@ class _NoteInputAreaState extends State<NoteInputArea> {
           // Multiple Note Blocks with Plus/Minus buttons positioned after the last block
           Expanded(
             child: ListView.builder(
-              itemCount: widget.noteControllers.length + 1, // +1 for the buttons
+              itemCount: widget.noteBlocks.length + 1, // +1 for the buttons
               itemBuilder: (context, index) {
                 // Show note blocks first
-                if (index < widget.noteControllers.length) {
+                if (index < widget.noteBlocks.length) {
+                  final noteBlock = widget.noteBlocks[index];
                   return NoteBlock(
-                    controller: widget.noteControllers[index],
-                    focusNode: index < widget.noteFocusNodes.length 
-                        ? widget.noteFocusNodes[index]
-                        : null,
+                    controller: noteBlock.controller,
+                    focusNode: noteBlock.focusNode,
+                    indentLevel:
+                        noteBlock.indentLevel, // Pass indentation level
                     isCompact: isCompact,
-                    hintText: index == 0 
-                        ? 'Write your note here...' 
-                        : 'Continue your note...',
+                    hintText: index == 0
+                        ? 'Write your note here...'
+                        : noteBlock.isIndented
+                            ? 'Add sub-point...'
+                            : 'Continue your note...',
                     onChanged: (text) {
-                      debugPrint('Note block ${index + 1} changed: ${text.length} characters');
+                      debugPrint(
+                          'Note block ${index + 1} changed: ${text.length} characters (indent: ${noteBlock.indentLevel})');
                     },
                   );
                 } else {
                   // Show Plus/Minus buttons after the last note block
                   return NoteBlockButtons(
                     onAddBlock: widget.onAddNoteBlock,
+                    onAddIndentedBlock: widget.onAddIndentedNoteBlock,
                     onRemoveBlock: widget.onRemoveNoteBlock,
-                    canRemoveBlock: widget.noteControllers.length > 1, // Can't remove if only one block
-                    canAddBlock: widget.noteControllers.length < NoteInputArea.maxNoteBlocks, // Can't add if at max blocks
+                    canRemoveBlock: widget.noteBlocks.length >
+                        1, // Can't remove if only one block
+                    canAddBlock: widget.noteBlocks.length <
+                        NoteInputArea
+                            .maxNoteBlocks, // Can't add if at max blocks
                     isCompact: isCompact,
                   );
                 }
