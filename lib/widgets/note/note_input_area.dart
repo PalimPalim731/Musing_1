@@ -35,6 +35,9 @@ class NoteInputArea extends StatefulWidget {
   final VoidCallback? onMic;
   final VoidCallback? onLink;
 
+  // Maximum number of note blocks allowed
+  static const int maxNoteBlocks = 3;
+
   const NoteInputArea({
     super.key,
     required this.headerController,

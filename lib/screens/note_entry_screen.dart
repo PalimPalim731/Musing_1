@@ -109,6 +109,9 @@ class NoteEntryScreen extends StatefulWidget {
 }
 
 class _NoteEntryScreenState extends State<NoteEntryScreen> {
+  // Maximum number of note blocks per category
+  static const int maxNoteBlocks = 3;
+
   /// Get max quick-tags for a specific category
   int _getMaxQuickTags(String category) {
     switch (category) {
@@ -460,13 +463,28 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
 
   // Handle adding a new note block
   void _handleAddNoteBlock() {
+    // Check if we've reached the maximum number of blocks
+    if (_noteControllers.length >= maxNoteBlocks) {
+      debugPrint(
+          'Cannot add more note blocks. Maximum limit ($maxNoteBlocks) reached for $_selectedCategory category.');
+
+      // Show a brief feedback to the user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Maximum $maxNoteBlocks note blocks allowed'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       final currentState = _currentNoteState;
       currentState.noteControllers.add(TextEditingController());
       currentState.noteFocusNodes.add(FocusNode());
     });
     debugPrint(
-        'Added note block to $_selectedCategory category. Total blocks: ${_noteControllers.length}');
+        'Added note block to $_selectedCategory category. Total blocks: ${_noteControllers.length}/$maxNoteBlocks');
   }
 
   // Handle removing the most recent note block
@@ -486,7 +504,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     });
 
     debugPrint(
-        'Removed note block from $_selectedCategory category. Total blocks: ${_noteControllers.length}');
+        'Removed note block from $_selectedCategory category. Total blocks: ${_noteControllers.length}/$maxNoteBlocks');
   }
 
   // Determine if a tag is a quick-tag (rectangle) based on ID

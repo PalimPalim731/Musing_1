@@ -8,6 +8,7 @@ class NoteBlockButtons extends StatelessWidget {
   final VoidCallback? onAddBlock;
   final VoidCallback? onRemoveBlock;
   final bool canRemoveBlock; // Whether removal is allowed
+  final bool canAddBlock; // Whether adding more blocks is allowed
   final bool isCompact;
 
   const NoteBlockButtons({
@@ -15,6 +16,7 @@ class NoteBlockButtons extends StatelessWidget {
     this.onAddBlock,
     this.onRemoveBlock,
     this.canRemoveBlock = true,
+    this.canAddBlock = true, // Default to allowing add
     this.isCompact = false,
   });
 
@@ -45,18 +47,26 @@ class NoteBlockButtons extends StatelessWidget {
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: onAddBlock,
+                  onTap: canAddBlock ? onAddBlock : null,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(borderRadius),
                     bottomLeft: Radius.circular(borderRadius),
                   ),
-                  splashColor: theme.colorScheme.primary.withOpacity(0.15),
-                  highlightColor: theme.colorScheme.primary.withOpacity(0.1),
+                  splashColor: canAddBlock
+                      ? theme.colorScheme.primary.withOpacity(0.15)
+                      : null,
+                  highlightColor: canAddBlock
+                      ? theme.colorScheme.primary.withOpacity(0.1)
+                      : null,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.05),
+                      color: canAddBlock
+                          ? theme.colorScheme.primary.withOpacity(0.05)
+                          : Colors.grey.withOpacity(0.03),
                       border: Border.all(
-                        color: theme.colorScheme.primary.withOpacity(0.2),
+                        color: canAddBlock
+                            ? theme.colorScheme.primary.withOpacity(0.2)
+                            : Colors.grey.withOpacity(0.1),
                         width: 1.0,
                       ),
                       borderRadius: BorderRadius.only(
@@ -68,7 +78,9 @@ class NoteBlockButtons extends StatelessWidget {
                       child: Icon(
                         Icons.add,
                         size: iconSize,
-                        color: theme.colorScheme.primary,
+                        color: canAddBlock
+                            ? theme.colorScheme.primary
+                            : Colors.grey.shade400,
                       ),
                     ),
                   ),

@@ -30,7 +30,7 @@ class NoteBlock extends StatefulWidget {
 
 class _NoteBlockState extends State<NoteBlock> {
   // Constants for the note block
-  static const int _maxCharacters = 400;
+  static const int _maxCharacters = 100;
   static const int _averageCharsPerLine = 45; // Estimated characters per line
 
   // State variables
