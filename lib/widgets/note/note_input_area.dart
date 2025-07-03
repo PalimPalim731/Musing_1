@@ -8,19 +8,24 @@ import '../tag/tag_chip.dart';
 import 'action_button.dart';
 import 'header_rectangle.dart';
 import 'note_block.dart';
+import 'note_block_buttons.dart';
 
 /// Note input area with structured note-blocks and action buttons
 /// Light mode only
 class NoteInputArea extends StatefulWidget {
   final TextEditingController headerController;
-  final TextEditingController noteController;
+  final List<TextEditingController> noteControllers; // Changed to support multiple blocks
   final FocusNode? headerFocusNode;
-  final FocusNode? noteFocusNode;
+  final List<FocusNode?> noteFocusNodes; // Changed to support multiple blocks
   final List<TagData> appliedQuickTags;
   final List<TagData> appliedRegularTags;
   final Function(TagData)? onTagAdded;
   final Function(TagData)? onTagRemoved;
   final String? category;
+
+  // Note block management callbacks
+  final VoidCallback? onAddNoteBlock;
+  final VoidCallback? onRemoveNoteBlock;
 
   // Action callbacks
   final VoidCallback? onDelete;
@@ -33,14 +38,16 @@ class NoteInputArea extends StatefulWidget {
   const NoteInputArea({
     super.key,
     required this.headerController,
-    required this.noteController,
+    required this.noteControllers,
     this.headerFocusNode,
-    this.noteFocusNode,
+    required this.noteFocusNodes,
     this.appliedQuickTags = const [],
     this.appliedRegularTags = const [],
     this.onTagAdded,
     this.onTagRemoved,
     this.category,
+    this.onAddNoteBlock,
+    this.onRemoveNoteBlock,
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -49,8 +56,8 @@ class NoteInputArea extends StatefulWidget {
     this.onLink,
   });
 
-  // Legacy constructor for backward compatibility
-  const NoteInputArea.legacy({
+  // Legacy constructor for backward compatibility - REMOVED const
+  NoteInputArea.legacy({
     super.key,
     required TextEditingController controller,
     FocusNode? focusNode,
@@ -58,6 +65,8 @@ class NoteInputArea extends StatefulWidget {
     this.onTagAdded,
     this.onTagRemoved,
     this.category,
+    this.onAddNoteBlock,
+    this.onRemoveNoteBlock,
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -65,9 +74,9 @@ class NoteInputArea extends StatefulWidget {
     this.onMic,
     this.onLink,
   })  : headerController = controller,
-        noteController = controller,
+        noteControllers = [controller],
         headerFocusNode = focusNode,
-        noteFocusNode = null,
+        noteFocusNodes = [null],
         appliedQuickTags = const [],
         appliedRegularTags = appliedTags;
 
@@ -166,19 +175,35 @@ class _NoteInputAreaState extends State<NoteInputArea> {
             },
           ),
 
-          // Main Note Block - REMOVED Expanded wrapper to allow custom sizing
-          NoteBlock(
-            controller: widget.noteController,
-            focusNode: widget.noteFocusNode,
-            isCompact: isCompact,
-            hintText: 'Write your note here...',
-            onChanged: (text) {
-              debugPrint('Note content changed: ${text.length} characters');
-            },
+          // Multiple Note Blocks
+          Expanded(
+            child: ListView.builder(
+              itemCount: widget.noteControllers.length,
+              itemBuilder: (context, index) {
+                return NoteBlock(
+                  controller: widget.noteControllers[index],
+                  focusNode: index < widget.noteFocusNodes.length 
+                      ? widget.noteFocusNodes[index]
+                      : null,
+                  isCompact: isCompact,
+                  hintText: index == 0 
+                      ? 'Write your note here...' 
+                      : 'Continue your note...',
+                  onChanged: (text) {
+                    debugPrint('Note block ${index + 1} changed: ${text.length} characters');
+                  },
+                );
+              },
+            ),
           ),
 
-          // Spacer to push content to the top and fill remaining space
-          const Spacer(),
+          // Plus/Minus buttons for adding/removing note blocks
+          NoteBlockButtons(
+            onAddBlock: widget.onAddNoteBlock,
+            onRemoveBlock: widget.onRemoveNoteBlock,
+            canRemoveBlock: widget.noteControllers.length > 1, // Can't remove if only one block
+            isCompact: isCompact,
+          ),
 
           SizedBox(height: isCompact ? 8.0 : 12.0),
         ],

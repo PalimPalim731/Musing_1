@@ -18,14 +18,17 @@ import '../models/tag.dart';
 /// Data structure to hold category-specific note state
 class CategoryNoteState {
   final TextEditingController headerController;
-  final TextEditingController noteController;
+  final List<TextEditingController>
+      noteControllers; // Changed to support multiple blocks
+  final List<FocusNode> noteFocusNodes; // Focus nodes for each note block
   final List<TagData> appliedQuickTags;
   final List<TagData> appliedRegularTags;
   final String category; // Add category parameter
 
   CategoryNoteState({
     required this.headerController,
-    required this.noteController,
+    required this.noteControllers,
+    required this.noteFocusNodes,
     required this.category, // Make category required
     List<TagData>? appliedQuickTags,
     List<TagData>? appliedRegularTags,
@@ -35,14 +38,16 @@ class CategoryNoteState {
   /// Create a copy with updated values
   CategoryNoteState copyWith({
     TextEditingController? headerController,
-    TextEditingController? noteController,
+    List<TextEditingController>? noteControllers,
+    List<FocusNode>? noteFocusNodes,
     String? category,
     List<TagData>? appliedQuickTags,
     List<TagData>? appliedRegularTags,
   }) {
     return CategoryNoteState(
       headerController: headerController ?? this.headerController,
-      noteController: noteController ?? this.noteController,
+      noteControllers: noteControllers ?? this.noteControllers,
+      noteFocusNodes: noteFocusNodes ?? this.noteFocusNodes,
       category: category ?? this.category,
       appliedQuickTags: appliedQuickTags ?? List.from(this.appliedQuickTags),
       appliedRegularTags:
@@ -69,7 +74,7 @@ class CategoryNoteState {
   /// Check if this note state has any content
   bool get hasContent =>
       headerController.text.isNotEmpty ||
-      noteController.text.isNotEmpty ||
+      noteControllers.any((controller) => controller.text.isNotEmpty) ||
       appliedQuickTags.isNotEmpty ||
       appliedRegularTags.isNotEmpty;
 
@@ -147,7 +152,9 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   // Getters for current category's data (for easier access)
   TextEditingController get _headerController =>
       _currentNoteState.headerController;
-  TextEditingController get _noteController => _currentNoteState.noteController;
+  List<TextEditingController> get _noteControllers =>
+      _currentNoteState.noteControllers;
+  List<FocusNode> get _noteFocusNodes => _currentNoteState.noteFocusNodes;
   List<TagData> get _appliedQuickTags => _currentNoteState.appliedQuickTags;
   List<TagData> get _appliedRegularTags => _currentNoteState.appliedRegularTags;
 
@@ -159,17 +166,20 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     _categoryNoteStates = {
       'Private': CategoryNoteState(
         headerController: TextEditingController(),
-        noteController: TextEditingController(),
+        noteControllers: [TextEditingController()], // Start with one note block
+        noteFocusNodes: [FocusNode()], // Start with one focus node
         category: 'Private',
       ),
       'Circle': CategoryNoteState(
         headerController: TextEditingController(),
-        noteController: TextEditingController(),
+        noteControllers: [TextEditingController()], // Start with one note block
+        noteFocusNodes: [FocusNode()], // Start with one focus node
         category: 'Circle',
       ),
       'Public': CategoryNoteState(
         headerController: TextEditingController(),
-        noteController: TextEditingController(),
+        noteControllers: [TextEditingController()], // Start with one note block
+        noteFocusNodes: [FocusNode()], // Start with one focus node
         category: 'Public',
       ),
     };
@@ -220,7 +230,12 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     // Clean up all controllers and focus nodes
     for (var categoryState in _categoryNoteStates.values) {
       categoryState.headerController.dispose();
-      categoryState.noteController.dispose();
+      for (var controller in categoryState.noteControllers) {
+        controller.dispose();
+      }
+      for (var focusNode in categoryState.noteFocusNodes) {
+        focusNode.dispose();
+      }
     }
     _noteFocusNode.dispose();
     super.dispose();
@@ -331,13 +346,18 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
                             flex: 8,
                             child: NoteContent(
                               headerController: _headerController,
-                              noteController: _noteController,
-                              noteFocusNode: _noteFocusNode,
+                              noteControllers: _noteControllers,
+                              headerFocusNode: null,
+                              noteFocusNodes: _noteFocusNodes
+                                  .map((fn) => fn as FocusNode?)
+                                  .toList(),
                               appliedQuickTags: _appliedQuickTags,
                               appliedRegularTags: _appliedRegularTags,
                               selectedCategory: _selectedCategory,
                               onTagAdded: _handleTagAdded,
                               onTagRemoved: _handleTagRemoved,
+                              onAddNoteBlock: _handleAddNoteBlock,
+                              onRemoveNoteBlock: _handleRemoveNoteBlock,
                               onDelete: _handleDeleteNote,
                               onUndo: _handleUndoNote,
                               onFormat: _handleFormatNote,
@@ -404,7 +424,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     final currentState = _currentNoteState;
     if (currentState.hasContent) {
       debugPrint(
-          'Preserving $category note with ${currentState.headerController.text.length + currentState.noteController.text.length} characters and ${currentState.totalTagCount} tags');
+          'Preserving $category note with ${currentState.headerController.text.length + currentState.noteControllers.map((c) => c.text.length).reduce((a, b) => a + b)} characters and ${currentState.totalTagCount} tags');
     }
 
     setState(() {
@@ -419,7 +439,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     final newState = _currentNoteState;
     if (newState.hasContent) {
       debugPrint(
-          'Loaded $category note with ${newState.headerController.text.length + newState.noteController.text.length} characters and ${newState.totalTagCount} tags');
+          'Loaded $category note with ${newState.headerController.text.length + newState.noteControllers.map((c) => c.text.length).reduce((a, b) => a + b)} characters and ${newState.totalTagCount} tags');
     } else {
       debugPrint('Loaded empty $category note space');
     }
@@ -436,6 +456,37 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     _rectangleService.togglePage();
     debugPrint(
         'Switched to quick-tag page ${_rectangleService.currentPage + 1}');
+  }
+
+  // Handle adding a new note block
+  void _handleAddNoteBlock() {
+    setState(() {
+      final currentState = _currentNoteState;
+      currentState.noteControllers.add(TextEditingController());
+      currentState.noteFocusNodes.add(FocusNode());
+    });
+    debugPrint(
+        'Added note block to $_selectedCategory category. Total blocks: ${_noteControllers.length}');
+  }
+
+  // Handle removing the most recent note block
+  void _handleRemoveNoteBlock() {
+    if (_noteControllers.length <= 1) {
+      return; // Don't remove if only one block remains
+    }
+
+    setState(() {
+      final currentState = _currentNoteState;
+      // Remove and dispose the last controller and focus node
+      final removedController = currentState.noteControllers.removeLast();
+      final removedFocusNode = currentState.noteFocusNodes.removeLast();
+
+      removedController.dispose();
+      removedFocusNode.dispose();
+    });
+
+    debugPrint(
+        'Removed note block from $_selectedCategory category. Total blocks: ${_noteControllers.length}');
   }
 
   // Determine if a tag is a quick-tag (rectangle) based on ID
@@ -516,7 +567,14 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   // Save the current note (combines both tag types) with validation
   void _saveCurrentNote() {
     final headerContent = _headerController.text.trim();
-    final noteContent = _noteController.text.trim();
+
+    // Combine all note block contents
+    final noteContents = _noteControllers
+        .map((controller) => controller.text.trim())
+        .where((content) => content.isNotEmpty)
+        .toList();
+
+    final noteContent = noteContents.join('\n\n');
 
     // Combine header and note content with a separator if both exist
     String fullContent = '';
@@ -562,8 +620,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
       debugPrint('Note saved to $_selectedCategory: ${note.id}');
       debugPrint(
           'Header: ${headerContent.isNotEmpty ? '"$headerContent"' : '(empty)'}');
-      debugPrint(
-          'Content: ${noteContent.isNotEmpty ? '"${noteContent.substring(0, noteContent.length > 50 ? 50 : noteContent.length)}${noteContent.length > 50 ? '...' : ''}"' : '(empty)'}');
+      debugPrint('Content blocks: ${noteContents.length}');
       debugPrint(
           'Quick-tags (${_appliedQuickTags.length}/$maxQuickTags): ${_appliedQuickTags.map((t) => t.label).join(", ")}');
       debugPrint(
@@ -571,7 +628,9 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
 
       // Clear the current category's note input and reset state
       _headerController.clear();
-      _noteController.clear();
+      for (var controller in _noteControllers) {
+        controller.clear();
+      }
 
       setState(() {
         _appliedQuickTags.clear();
@@ -599,7 +658,9 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
           TextButton(
             onPressed: () {
               _headerController.clear();
-              _noteController.clear();
+              for (var controller in _noteControllers) {
+                controller.clear();
+              }
               Navigator.of(context).pop();
 
               // Reset current category's applied tags

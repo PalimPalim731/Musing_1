@@ -9,14 +9,19 @@ import '../rectangle/rectangle_bar.dart';
 /// Main content area with note input and rectangle bar
 class NoteContent extends StatelessWidget {
   final TextEditingController headerController;
-  final TextEditingController noteController;
+  final List<TextEditingController>
+      noteControllers; // Changed to support multiple blocks
   final FocusNode? headerFocusNode;
-  final FocusNode? noteFocusNode;
+  final List<FocusNode?> noteFocusNodes; // Changed to support multiple blocks
   final List<TagData> appliedQuickTags; // Rectangle-based tags (3 chars)
   final List<TagData> appliedRegularTags; // Sidebar tags (longer names)
   final Function(TagData)? onTagAdded;
   final Function(TagData)? onTagRemoved;
   final String selectedCategory; // Add category parameter
+
+  // Note block management callbacks
+  final VoidCallback? onAddNoteBlock;
+  final VoidCallback? onRemoveNoteBlock;
 
   // Action callbacks
   final VoidCallback? onDelete;
@@ -29,14 +34,16 @@ class NoteContent extends StatelessWidget {
   const NoteContent({
     super.key,
     required this.headerController,
-    required this.noteController,
+    required this.noteControllers,
     this.headerFocusNode,
-    this.noteFocusNode,
+    required this.noteFocusNodes,
     this.appliedQuickTags = const [],
     this.appliedRegularTags = const [],
     this.onTagAdded,
     this.onTagRemoved,
     required this.selectedCategory, // Add required category parameter
+    this.onAddNoteBlock,
+    this.onRemoveNoteBlock,
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -45,8 +52,8 @@ class NoteContent extends StatelessWidget {
     this.onLink,
   });
 
-  // Legacy constructor for backward compatibility
-  const NoteContent.legacy({
+  // Legacy constructor for backward compatibility - REMOVED const
+  NoteContent.legacy({
     super.key,
     required TextEditingController noteController,
     FocusNode? focusNode,
@@ -54,6 +61,8 @@ class NoteContent extends StatelessWidget {
     this.onTagAdded,
     this.onTagRemoved,
     this.selectedCategory = 'Private', // Default category for legacy
+    this.onAddNoteBlock,
+    this.onRemoveNoteBlock,
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -61,9 +70,9 @@ class NoteContent extends StatelessWidget {
     this.onMic,
     this.onLink,
   })  : headerController = noteController,
-        noteController = noteController,
+        noteControllers = [noteController],
         headerFocusNode = focusNode,
-        noteFocusNode = null,
+        noteFocusNodes = [null],
         appliedQuickTags = const [],
         appliedRegularTags = appliedTags;
 
@@ -89,15 +98,17 @@ class NoteContent extends StatelessWidget {
         Expanded(
           child: NoteInputArea(
             headerController: headerController,
-            noteController: noteController,
+            noteControllers: noteControllers,
             headerFocusNode: headerFocusNode,
-            noteFocusNode: noteFocusNode,
+            noteFocusNodes: noteFocusNodes,
             appliedQuickTags: appliedQuickTags,
             appliedRegularTags: appliedRegularTags,
             onTagAdded: onTagAdded,
             onTagRemoved: onTagRemoved,
             category:
                 selectedCategory, // Pass the selected category for spacing optimization
+            onAddNoteBlock: onAddNoteBlock,
+            onRemoveNoteBlock: onRemoveNoteBlock,
             onDelete: onDelete,
             onUndo: onUndo,
             onFormat: onFormat,
