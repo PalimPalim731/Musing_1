@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 
 /// Plus and minus buttons for adding/removing note blocks
+/// Height is fixed at 50% of the default note block size
+/// Width adapts to match indentation of the latest note block
 class NoteBlockButtons extends StatelessWidget {
   final VoidCallback? onAddBlock;
   final VoidCallback? onAddIndentedBlock; // New callback for long press
@@ -11,6 +13,8 @@ class NoteBlockButtons extends StatelessWidget {
   final bool canRemoveBlock; // Whether removal is allowed
   final bool canAddBlock; // Whether adding more blocks is allowed
   final bool isCompact;
+  final double? adaptiveHeight; // Fixed height (50% of default note block size)
+  final double indentationOffset; // Indentation to match latest note block
 
   const NoteBlockButtons({
     super.key,
@@ -20,12 +24,17 @@ class NoteBlockButtons extends StatelessWidget {
     this.canRemoveBlock = true,
     this.canAddBlock = true, // Default to allowing add
     this.isCompact = false,
+    this.adaptiveHeight, // Fixed height (50% of default note block size)
+    this.indentationOffset = 0.0, // Default to no indentation
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final buttonHeight = isCompact ? 35.0 : 40.0;
+
+    // Use fixed height (50% of default note block) if provided, otherwise fall back to default sizing
+    final buttonHeight = adaptiveHeight ?? (isCompact ? 35.0 : 40.0);
+
     final fontSize =
         AppLayout.getFontSize(context, baseSize: isCompact ? 16.0 : 18.0);
     final iconSize =
@@ -33,11 +42,18 @@ class NoteBlockButtons extends StatelessWidget {
     final borderRadius =
         isCompact ? AppLayout.buttonRadius * 0.8 : AppLayout.buttonRadius;
 
+    // Calculate margins to match note block spacing and apply indentation
+    final horizontalMargin = isCompact ? 8.0 : 12.0;
+    final verticalMargin = isCompact ? 6.0 : 8.0;
+
     return Container(
       height: buttonHeight,
-      margin: EdgeInsets.symmetric(
-        horizontal: isCompact ? 8.0 : 12.0,
-        vertical: isCompact ? 6.0 : 8.0,
+      margin: EdgeInsets.only(
+        left: horizontalMargin +
+            indentationOffset, // Apply indentation to match latest note block
+        right: horizontalMargin,
+        top: verticalMargin,
+        bottom: verticalMargin,
       ),
       child: Row(
         children: [

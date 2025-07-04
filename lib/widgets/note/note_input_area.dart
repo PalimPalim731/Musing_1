@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 import '../../models/tag.dart';
 import '../../models/note_block_data.dart';
+import '../../utils/note_block_height_utils.dart';
 import '../tag/tag_list.dart';
 import '../tag/tag_chip.dart';
 import 'action_button.dart';
@@ -114,6 +115,32 @@ class _NoteInputAreaState extends State<NoteInputArea> {
     );
   }
 
+  /// Calculate the height for +/- buttons (capped at 50% of default note block height)
+  double _calculateButtonHeight(bool isCompact) {
+    // Get the default/base dimensions for note blocks
+    final dimensions = NoteBlockHeightUtils.getDimensions(context, isCompact: isCompact);
+    
+    // Return 50% of the base height as the maximum button height
+    return dimensions.baseHeight * 0.5;
+  }
+
+  /// Calculate the indentation for +/- buttons to match the latest note block
+  double _calculateButtonIndentation(bool isCompact) {
+    if (widget.noteBlocks.isEmpty) {
+      return 0.0; // No indentation if no blocks
+    }
+
+    final lastBlock = widget.noteBlocks.last;
+    final dimensions = NoteBlockHeightUtils.getDimensions(
+      context, 
+      isCompact: isCompact, 
+      indentLevel: lastBlock.indentLevel
+    );
+    
+    // Return the same indentation offset as the last note block
+    return dimensions.indentOffset;
+  }
+
   /// Check if dragged data should be accepted
   bool _shouldAcceptDragData(Object? data) {
     if (data is TagData) {
@@ -209,10 +236,16 @@ class _NoteInputAreaState extends State<NoteInputArea> {
                     onChanged: (text) {
                       debugPrint(
                           'Note block ${index + 1} changed: ${text.length} characters (indent: ${noteBlock.indentLevel})');
+                      // Note: Button indentation updates when blocks are added/removed, not on text change
                     },
                   );
                 } else {
                   // Show Plus/Minus buttons after the last note block
+                  // Height is capped at 50% of the default note block size
+                  // Width adapts to match indentation of the latest note block
+                  final buttonHeight = _calculateButtonHeight(isCompact);
+                  final buttonIndentation = _calculateButtonIndentation(isCompact);
+                  
                   return NoteBlockButtons(
                     onAddBlock: widget.onAddNoteBlock,
                     onAddIndentedBlock: widget.onAddIndentedNoteBlock,
@@ -223,6 +256,8 @@ class _NoteInputAreaState extends State<NoteInputArea> {
                         NoteInputArea
                             .maxNoteBlocks, // Can't add if at max blocks
                     isCompact: isCompact,
+                    adaptiveHeight: buttonHeight, // Fixed height (50% of default note block)
+                    indentationOffset: buttonIndentation, // Match indentation of latest note block
                   );
                 }
               },
