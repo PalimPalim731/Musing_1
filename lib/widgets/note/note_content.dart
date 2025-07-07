@@ -23,6 +23,8 @@ class NoteContent extends StatelessWidget {
   final VoidCallback?
       onAddIndentedNoteBlock; // New callback for indented blocks
   final VoidCallback? onRemoveNoteBlock;
+  final VoidCallback? onAddSquare; // New callback for square creation
+  final VoidCallback? onRemoveSquare; // New callback for square removal
 
   // Action callbacks
   final VoidCallback? onDelete;
@@ -45,6 +47,8 @@ class NoteContent extends StatelessWidget {
     this.onAddNoteBlock,
     this.onAddIndentedNoteBlock,
     this.onRemoveNoteBlock,
+    this.onAddSquare,
+    this.onRemoveSquare,
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -65,6 +69,8 @@ class NoteContent extends StatelessWidget {
     this.onAddNoteBlock,
     this.onAddIndentedNoteBlock,
     this.onRemoveNoteBlock,
+    this.onAddSquare,
+    this.onRemoveSquare,
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -112,6 +118,8 @@ class NoteContent extends StatelessWidget {
             onAddNoteBlock: onAddNoteBlock,
             onAddIndentedNoteBlock: onAddIndentedNoteBlock,
             onRemoveNoteBlock: onRemoveNoteBlock,
+            onAddSquare: onAddSquare,
+            onRemoveSquare: onRemoveSquare,
             onDelete: onDelete,
             onUndo: onUndo,
             onFormat: onFormat,

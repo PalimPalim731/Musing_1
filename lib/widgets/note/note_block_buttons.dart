@@ -8,24 +8,29 @@ import '../../config/constants/layout.dart';
 /// Width adapts to match indentation of the latest note block
 class NoteBlockButtons extends StatelessWidget {
   final VoidCallback? onAddBlock;
-  final VoidCallback? onAddIndentedBlock; // New callback for long press
+  final VoidCallback? onAddIndentedBlock; // Callback for indented block
+  final VoidCallback? onAddSquare; // New callback for square creation
   final VoidCallback? onRemoveBlock;
   final bool canRemoveBlock; // Whether removal is allowed
   final bool canAddBlock; // Whether adding more blocks is allowed
   final bool isCompact;
   final double? adaptiveHeight; // Fixed height (50% of default note block size)
   final double indentationOffset; // Indentation to match latest note block
+  final bool
+      isAfterIndentedBlock; // Whether buttons are positioned after an indented block
 
   const NoteBlockButtons({
     super.key,
     this.onAddBlock,
     this.onAddIndentedBlock,
+    this.onAddSquare,
     this.onRemoveBlock,
     this.canRemoveBlock = true,
     this.canAddBlock = true, // Default to allowing add
     this.isCompact = false,
     this.adaptiveHeight, // Fixed height (50% of default note block size)
     this.indentationOffset = 0.0, // Default to no indentation
+    this.isAfterIndentedBlock = false, // Default to not after indented block
   });
 
   @override
@@ -66,7 +71,11 @@ class NoteBlockButtons extends StatelessWidget {
                 color: Colors.transparent,
                 child: GestureDetector(
                   onTap: canAddBlock ? onAddBlock : null,
-                  onLongPress: canAddBlock ? onAddIndentedBlock : null,
+                  onLongPress: canAddBlock
+                      ? (isAfterIndentedBlock
+                          ? onAddSquare
+                          : onAddIndentedBlock)
+                      : null,
                   child: Container(
                     decoration: BoxDecoration(
                       color: canAddBlock

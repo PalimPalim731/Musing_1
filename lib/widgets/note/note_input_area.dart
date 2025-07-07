@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 import '../../models/tag.dart';
 import '../../models/note_block_data.dart';
+import '../../models/note_element.dart';
 import '../../utils/note_block_height_utils.dart';
 import '../tag/tag_list.dart';
 import '../tag/tag_chip.dart';
@@ -11,6 +12,7 @@ import 'action_button.dart';
 import 'header_rectangle.dart';
 import 'note_block.dart';
 import 'note_block_buttons.dart';
+import 'square_with_buttons.dart';
 
 /// Note input area with structured note-blocks and action buttons
 /// Light mode only
@@ -29,6 +31,8 @@ class NoteInputArea extends StatefulWidget {
   final VoidCallback?
       onAddIndentedNoteBlock; // New callback for indented blocks
   final VoidCallback? onRemoveNoteBlock;
+  final VoidCallback? onAddSquare; // New callback for square creation
+  final VoidCallback? onRemoveSquare; // New callback for square removal
 
   // Action callbacks
   final VoidCallback? onDelete;
@@ -37,9 +41,6 @@ class NoteInputArea extends StatefulWidget {
   final VoidCallback? onCamera;
   final VoidCallback? onMic;
   final VoidCallback? onLink;
-
-  // Maximum number of note blocks allowed
-  static const int maxNoteBlocks = 3;
 
   const NoteInputArea({
     super.key,
@@ -54,6 +55,8 @@ class NoteInputArea extends StatefulWidget {
     this.onAddNoteBlock,
     this.onAddIndentedNoteBlock,
     this.onRemoveNoteBlock,
+    this.onAddSquare,
+    this.onRemoveSquare,
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -74,6 +77,8 @@ class NoteInputArea extends StatefulWidget {
     this.onAddNoteBlock,
     this.onAddIndentedNoteBlock,
     this.onRemoveNoteBlock,
+    this.onAddSquare,
+    this.onRemoveSquare,
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -95,6 +100,9 @@ class NoteInputArea extends StatefulWidget {
 class _NoteInputAreaState extends State<NoteInputArea> {
   // Key for drag detection bounds
   final GlobalKey _noteInputKey = GlobalKey();
+  
+  // Track if a square exists (simplified approach - only one square at a time)
+  SquareNoteElement? _squareElement;
 
   @override
   void initState() {
@@ -113,6 +121,40 @@ class _NoteInputAreaState extends State<NoteInputArea> {
       actionBarHeight: isCompact ? 33.75 : 45.0,
       padding: isCompact ? 10.0 : 16.0,
     );
+  }
+
+  /// Check if the +/- buttons are positioned after an indented block
+  bool _isAfterIndentedBlock() {
+    if (widget.noteBlocks.isEmpty) return false;
+    final lastBlock = widget.noteBlocks.last;
+    return lastBlock.indentLevel > 0;
+  }
+
+  /// Handle square creation after an indented block
+  void _handleSquareCreation() {
+    // Only create square if we're after an indented block AND no square exists yet
+    if (!_isAfterIndentedBlock() || _squareElement != null) return;
+    
+    final lastBlock = widget.noteBlocks.last;
+    
+    // Create a square element with the same indent level as the last block
+    final squareId = 'square_${DateTime.now().millisecondsSinceEpoch}';
+    final squareElement = SquareNoteElement.afterIndented(squareId, lastBlock.indentLevel);
+    
+    setState(() {
+      _squareElement = squareElement;
+    });
+    
+    debugPrint('Square created after indented block (persists across new blocks)');
+  }
+
+  /// Handle square removal
+  void _handleSquareRemoval() {
+    setState(() {
+      _squareElement = null;
+    });
+    
+    debugPrint('Square removed');
   }
 
   /// Calculate the height for +/- buttons (capped at 50% of default note block height)
@@ -215,9 +257,10 @@ class _NoteInputAreaState extends State<NoteInputArea> {
           ),
 
           // Multiple Note Blocks with Plus/Minus buttons positioned after the last block
+          // If there's a square after the last block, show it with buttons horizontally
           Expanded(
             child: ListView.builder(
-              itemCount: widget.noteBlocks.length + 1, // +1 for the buttons
+              itemCount: widget.noteBlocks.length + 1, // +1 for the buttons/square
               itemBuilder: (context, index) {
                 // Show note blocks first
                 if (index < widget.noteBlocks.length) {
@@ -241,24 +284,47 @@ class _NoteInputAreaState extends State<NoteInputArea> {
                   );
                 } else {
                   // Show Plus/Minus buttons after the last note block
-                  // Height is capped at 50% of the default note block size
-                  // Width adapts to match indentation of the latest note block
-                  final buttonHeight = _calculateButtonHeight(isCompact);
-                  final buttonIndentation = _calculateButtonIndentation(isCompact);
+                  // If there's a square, show square + buttons horizontally
+                  final hasSquare = _squareElement != null;
                   
-                  return NoteBlockButtons(
-                    onAddBlock: widget.onAddNoteBlock,
-                    onAddIndentedBlock: widget.onAddIndentedNoteBlock,
-                    onRemoveBlock: widget.onRemoveNoteBlock,
-                    canRemoveBlock: widget.noteBlocks.length >
-                        1, // Can't remove if only one block
-                    canAddBlock: widget.noteBlocks.length <
-                        NoteInputArea
-                            .maxNoteBlocks, // Can't add if at max blocks
-                    isCompact: isCompact,
-                    adaptiveHeight: buttonHeight, // Fixed height (50% of default note block)
-                    indentationOffset: buttonIndentation, // Match indentation of latest note block
-                  );
+                  if (hasSquare) {
+                    // Show square with buttons horizontally
+                    final buttonHeight = _calculateButtonHeight(isCompact);
+                    final buttonIndentation = _calculateButtonIndentation(isCompact);
+                    
+                    return SquareWithButtons(
+                      squareElement: _squareElement!,
+                      totalHeight: buttonHeight,
+                      isCompact: isCompact,
+                      indentationOffset: buttonIndentation,
+                      onAddBlock: widget.onAddNoteBlock,
+                      onAddIndentedBlock: widget.onAddIndentedNoteBlock,
+                      onRemoveBlock: widget.onRemoveNoteBlock,
+                      onRemoveSquare: _handleSquareRemoval,
+                      canRemoveBlock: widget.noteBlocks.length > 1,
+                      canAddBlock: true, // Always allow adding blocks (no limit)
+                      onSquareTap: () {
+                        debugPrint('Square tapped: ${_squareElement!.id}');
+                      },
+                    );
+                  } else {
+                    // Show normal buttons with square creation capability
+                    final buttonHeight = _calculateButtonHeight(isCompact);
+                    final buttonIndentation = _calculateButtonIndentation(isCompact);
+                    
+                    return NoteBlockButtons(
+                      onAddBlock: widget.onAddNoteBlock,
+                      onAddIndentedBlock: widget.onAddIndentedNoteBlock,
+                      onAddSquare: (_isAfterIndentedBlock() && _squareElement == null) ? _handleSquareCreation : null,
+                      onRemoveBlock: widget.onRemoveNoteBlock,
+                      canRemoveBlock: widget.noteBlocks.length > 1,
+                      canAddBlock: true, // Always allow adding blocks (no limit)
+                      isCompact: isCompact,
+                      adaptiveHeight: buttonHeight,
+                      indentationOffset: buttonIndentation,
+                      isAfterIndentedBlock: _isAfterIndentedBlock(),
+                    );
+                  }
                 }
               },
             ),
