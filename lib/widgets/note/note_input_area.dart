@@ -101,8 +101,8 @@ class _NoteInputAreaState extends State<NoteInputArea> {
   // Key for drag detection bounds
   final GlobalKey _noteInputKey = GlobalKey();
   
-  // Track if a square exists (simplified approach - only one square at a time)
-  SquareNoteElement? _squareElement;
+  // Track multiple squares (up to 3 per indented block)
+  List<SquareNoteElement> _squareElements = [];
 
   @override
   void initState() {
@@ -130,10 +130,10 @@ class _NoteInputAreaState extends State<NoteInputArea> {
     return lastBlock.indentLevel > 0;
   }
 
-  /// Handle square creation after an indented block
+  /// Handle square creation after an indented block (up to 3 squares)
   void _handleSquareCreation() {
-    // Only create square if we're after an indented block AND no square exists yet
-    if (!_isAfterIndentedBlock() || _squareElement != null) return;
+    // Only create square if we're after an indented block AND haven't reached limit (3)
+    if (!_isAfterIndentedBlock() || _squareElements.length >= 3) return;
     
     final lastBlock = widget.noteBlocks.last;
     
@@ -142,19 +142,21 @@ class _NoteInputAreaState extends State<NoteInputArea> {
     final squareElement = SquareNoteElement.afterIndented(squareId, lastBlock.indentLevel);
     
     setState(() {
-      _squareElement = squareElement;
+      _squareElements.add(squareElement);
     });
     
-    debugPrint('Square created after indented block (persists across new blocks)');
+    debugPrint('Square ${_squareElements.length}/3 created after indented block');
   }
 
-  /// Handle square removal
+  /// Handle square removal (removes the last/most recent square)
   void _handleSquareRemoval() {
+    if (_squareElements.isEmpty) return;
+    
     setState(() {
-      _squareElement = null;
+      _squareElements.removeLast();
     });
     
-    debugPrint('Square removed');
+    debugPrint('Square removed. Remaining: ${_squareElements.length}/3');
   }
 
   /// Calculate the height for +/- buttons (capped at 50% of default note block height)
@@ -284,27 +286,28 @@ class _NoteInputAreaState extends State<NoteInputArea> {
                   );
                 } else {
                   // Show Plus/Minus buttons after the last note block
-                  // If there's a square, show square + buttons horizontally
-                  final hasSquare = _squareElement != null;
+                  // If there are squares, show squares + buttons with dynamic layout
+                  final hasSquares = _squareElements.isNotEmpty;
                   
-                  if (hasSquare) {
-                    // Show square with buttons horizontally
+                  if (hasSquares) {
+                    // Show squares with buttons - layout depends on square count
                     final buttonHeight = _calculateButtonHeight(isCompact);
                     final buttonIndentation = _calculateButtonIndentation(isCompact);
                     
-                    return SquareWithButtons(
-                      squareElement: _squareElement!,
+                    return MultiSquareWithButtons(
+                      squareElements: _squareElements,
                       totalHeight: buttonHeight,
                       isCompact: isCompact,
                       indentationOffset: buttonIndentation,
                       onAddBlock: widget.onAddNoteBlock,
                       onAddIndentedBlock: widget.onAddIndentedNoteBlock,
                       onRemoveBlock: widget.onRemoveNoteBlock,
+                      onAddSquare: (_squareElements.length < 3) ? _handleSquareCreation : null, // Only if under limit
                       onRemoveSquare: _handleSquareRemoval,
                       canRemoveBlock: widget.noteBlocks.length > 1,
                       canAddBlock: true, // Always allow adding blocks (no limit)
-                      onSquareTap: () {
-                        debugPrint('Square tapped: ${_squareElement!.id}');
+                      onSquareTap: (square) {
+                        debugPrint('Square tapped: ${square.id}');
                       },
                     );
                   } else {
@@ -315,7 +318,7 @@ class _NoteInputAreaState extends State<NoteInputArea> {
                     return NoteBlockButtons(
                       onAddBlock: widget.onAddNoteBlock,
                       onAddIndentedBlock: widget.onAddIndentedNoteBlock,
-                      onAddSquare: (_isAfterIndentedBlock() && _squareElement == null) ? _handleSquareCreation : null,
+                      onAddSquare: (_isAfterIndentedBlock() && _squareElements.isEmpty) ? _handleSquareCreation : null,
                       onRemoveBlock: widget.onRemoveNoteBlock,
                       canRemoveBlock: widget.noteBlocks.length > 1,
                       canAddBlock: true, // Always allow adding blocks (no limit)
