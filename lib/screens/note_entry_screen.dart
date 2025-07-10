@@ -105,9 +105,6 @@ class NoteEntryScreen extends StatefulWidget {
 }
 
 class _NoteEntryScreenState extends State<NoteEntryScreen> {
-  // Maximum number of note blocks per category
-  static const int maxNoteBlocks = 3;
-
   /// Get max quick-tags for a specific category
   int _getMaxQuickTags(String category) {
     switch (category) {
@@ -454,55 +451,25 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
         'Switched to quick-tag page ${_rectangleService.currentPage + 1}');
   }
 
-  // Handle adding a new note block
+  // Handle adding a new note block - REMOVED THE LIMIT!
   void _handleAddNoteBlock() {
-    // Check if we've reached the maximum number of blocks
-    if (_noteBlocks.length >= maxNoteBlocks) {
-      debugPrint(
-          'Cannot add more note blocks. Maximum limit ($maxNoteBlocks) reached for $_selectedCategory category.');
-
-      // Show a brief feedback to the user
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Maximum $maxNoteBlocks note blocks allowed'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
     setState(() {
       final currentState = _currentNoteState;
       currentState.noteBlocks.add(NoteBlockData.normal());
     });
     debugPrint(
-        'Added normal note block to $_selectedCategory category. Total blocks: ${_noteBlocks.length}/$maxNoteBlocks');
+        'Added normal note block to $_selectedCategory category. Total blocks: ${_noteBlocks.length}');
   }
 
-  // Handle adding a new indented note block (long press)
+  // Handle adding a new indented note block (long press) - REMOVED THE LIMIT!
   void _handleAddIndentedNoteBlock() {
-    // Check if we've reached the maximum number of blocks
-    if (_noteBlocks.length >= maxNoteBlocks) {
-      debugPrint(
-          'Cannot add more note blocks. Maximum limit ($maxNoteBlocks) reached for $_selectedCategory category.');
-
-      // Show a brief feedback to the user
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Maximum $maxNoteBlocks note blocks allowed'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
     setState(() {
       final currentState = _currentNoteState;
       // Create an indented block (indent level 1)
       currentState.noteBlocks.add(NoteBlockData.withIndent(1));
     });
     debugPrint(
-        'Added indented note block to $_selectedCategory category. Total blocks: ${_noteBlocks.length}/$maxNoteBlocks');
+        'Added indented note block to $_selectedCategory category. Total blocks: ${_noteBlocks.length}');
   }
 
   // Handle removing the most recent note block
@@ -519,7 +486,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     });
 
     debugPrint(
-        'Removed note block from $_selectedCategory category. Total blocks: ${_noteBlocks.length}/$maxNoteBlocks');
+        'Removed note block from $_selectedCategory category. Total blocks: ${_noteBlocks.length}');
   }
 
   // Determine if a tag is a quick-tag (rectangle) based on ID

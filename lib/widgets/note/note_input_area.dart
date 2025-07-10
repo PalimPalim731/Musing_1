@@ -38,9 +38,6 @@ class NoteInputArea extends StatefulWidget {
   final VoidCallback? onMic;
   final VoidCallback? onLink;
 
-  // Maximum number of note blocks allowed
-  static const int maxNoteBlocks = 3;
-
   const NoteInputArea({
     super.key,
     required this.headerController,
@@ -252,9 +249,7 @@ class _NoteInputAreaState extends State<NoteInputArea> {
                     onRemoveBlock: widget.onRemoveNoteBlock,
                     canRemoveBlock: widget.noteBlocks.length >
                         1, // Can't remove if only one block
-                    canAddBlock: widget.noteBlocks.length <
-                        NoteInputArea
-                            .maxNoteBlocks, // Can't add if at max blocks
+                    canAddBlock: true, // ALWAYS ALLOW ADDING NOW - NO LIMIT!
                     isCompact: isCompact,
                     adaptiveHeight: buttonHeight, // Fixed height (50% of default note block)
                     indentationOffset: buttonIndentation, // Match indentation of latest note block
