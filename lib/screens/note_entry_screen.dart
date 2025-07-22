@@ -451,25 +451,46 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
         'Switched to quick-tag page ${_rectangleService.currentPage + 1}');
   }
 
-  // Handle adding a new note block - REMOVED THE LIMIT!
+  // Handle adding a new note block - conditional logic based on latest block
   void _handleAddNoteBlock() {
     setState(() {
       final currentState = _currentNoteState;
-      currentState.noteBlocks.add(NoteBlockData.normal());
+
+      // Check if the latest block is indented
+      if (currentState.noteBlocks.isNotEmpty &&
+          currentState.noteBlocks.last.indentLevel > 0) {
+        // If latest is indented, create another indented block (flipped behavior)
+        currentState.noteBlocks.add(NoteBlockData.withIndent(1));
+        debugPrint(
+            'Added indented note block (flipped) to $_selectedCategory category. Total blocks: ${_noteBlocks.length}');
+      } else {
+        // Normal behavior: create a normal block
+        currentState.noteBlocks.add(NoteBlockData.normal());
+        debugPrint(
+            'Added normal note block to $_selectedCategory category. Total blocks: ${_noteBlocks.length}');
+      }
     });
-    debugPrint(
-        'Added normal note block to $_selectedCategory category. Total blocks: ${_noteBlocks.length}');
   }
 
-  // Handle adding a new indented note block (long press) - REMOVED THE LIMIT!
+  // Handle adding a new indented note block (long press) - conditional logic based on latest block
   void _handleAddIndentedNoteBlock() {
     setState(() {
       final currentState = _currentNoteState;
-      // Create an indented block (indent level 1)
-      currentState.noteBlocks.add(NoteBlockData.withIndent(1));
+
+      // Check if the latest block is indented
+      if (currentState.noteBlocks.isNotEmpty &&
+          currentState.noteBlocks.last.indentLevel > 0) {
+        // If latest is indented, create a normal block (flipped behavior)
+        currentState.noteBlocks.add(NoteBlockData.normal());
+        debugPrint(
+            'Added normal note block (flipped) to $_selectedCategory category. Total blocks: ${_noteBlocks.length}');
+      } else {
+        // Normal behavior: create an indented block
+        currentState.noteBlocks.add(NoteBlockData.withIndent(1));
+        debugPrint(
+            'Added indented note block to $_selectedCategory category. Total blocks: ${_noteBlocks.length}');
+      }
     });
-    debugPrint(
-        'Added indented note block to $_selectedCategory category. Total blocks: ${_noteBlocks.length}');
   }
 
   // Handle removing the most recent note block
