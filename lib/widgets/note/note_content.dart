@@ -4,25 +4,27 @@ import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 import '../../models/tag.dart';
 import '../../models/note_block_data.dart';
+import '../../models/square_block_data.dart';
 import 'note_input_area.dart';
 import '../rectangle/rectangle_bar.dart';
 
 /// Main content area with note input and rectangle bar
 class NoteContent extends StatelessWidget {
   final TextEditingController headerController;
-  final List<NoteBlockData> noteBlocks; // Changed to use NoteBlockData
+  final List<NoteBlockData> noteBlocks;
   final FocusNode? headerFocusNode;
-  final List<TagData> appliedQuickTags; // Rectangle-based tags (3 chars)
-  final List<TagData> appliedRegularTags; // Sidebar tags (longer names)
+  final List<TagData> appliedQuickTags;
+  final List<TagData> appliedRegularTags;
   final Function(TagData)? onTagAdded;
   final Function(TagData)? onTagRemoved;
-  final String selectedCategory; // Add category parameter
+  final String selectedCategory;
 
   // Note block management callbacks
   final VoidCallback? onAddNoteBlock;
-  final VoidCallback?
-      onAddIndentedNoteBlock; // New callback for indented blocks
+  final VoidCallback? onAddIndentedNoteBlock;
   final VoidCallback? onRemoveNoteBlock;
+  final Function(int)? onAddSquareBlock; // NEW
+  final Function(int)? onRemoveSquareBlock; // NEW
 
   // Action callbacks
   final VoidCallback? onDelete;
@@ -41,10 +43,12 @@ class NoteContent extends StatelessWidget {
     this.appliedRegularTags = const [],
     this.onTagAdded,
     this.onTagRemoved,
-    required this.selectedCategory, // Add required category parameter
+    required this.selectedCategory,
     this.onAddNoteBlock,
     this.onAddIndentedNoteBlock,
     this.onRemoveNoteBlock,
+    this.onAddSquareBlock, // NEW
+    this.onRemoveSquareBlock, // NEW
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -53,7 +57,7 @@ class NoteContent extends StatelessWidget {
     this.onLink,
   });
 
-  // Legacy constructor for backward compatibility - REMOVED const
+  // Legacy constructor for backward compatibility
   NoteContent.legacy({
     super.key,
     required TextEditingController noteController,
@@ -61,10 +65,12 @@ class NoteContent extends StatelessWidget {
     List<TagData> appliedTags = const [],
     this.onTagAdded,
     this.onTagRemoved,
-    this.selectedCategory = 'Private', // Default category for legacy
+    this.selectedCategory = 'Private',
     this.onAddNoteBlock,
     this.onAddIndentedNoteBlock,
     this.onRemoveNoteBlock,
+    this.onAddSquareBlock,
+    this.onRemoveSquareBlock,
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -89,9 +95,8 @@ class NoteContent extends StatelessWidget {
         // Rectangle bar with 7 draggable rectangles (quick-tags)
         RectangleBar(
           isCompact: isCompact,
-          selectedCategory: selectedCategory, // Pass the selected category
+          selectedCategory: selectedCategory,
           onRectangleSelected: (rectangle) {
-            // When a rectangle is tapped, treat it as a quick-tag being added
             onTagAdded?.call(rectangle);
             debugPrint('Quick-tag selected: ${rectangle.label}');
           },
@@ -107,11 +112,12 @@ class NoteContent extends StatelessWidget {
             appliedRegularTags: appliedRegularTags,
             onTagAdded: onTagAdded,
             onTagRemoved: onTagRemoved,
-            category:
-                selectedCategory, // Pass the selected category for spacing optimization
+            category: selectedCategory,
             onAddNoteBlock: onAddNoteBlock,
             onAddIndentedNoteBlock: onAddIndentedNoteBlock,
             onRemoveNoteBlock: onRemoveNoteBlock,
+            onAddSquareBlock: onAddSquareBlock, // NEW
+            onRemoveSquareBlock: onRemoveSquareBlock, // NEW
             onDelete: onDelete,
             onUndo: onUndo,
             onFormat: onFormat,

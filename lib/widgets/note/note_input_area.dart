@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../config/constants/layout.dart';
 import '../../models/tag.dart';
 import '../../models/note_block_data.dart';
+import '../../models/square_block_data.dart';
 import '../../utils/note_block_height_utils.dart';
 import '../tag/tag_list.dart';
 import '../tag/tag_chip.dart';
@@ -11,12 +12,13 @@ import 'action_button.dart';
 import 'header_rectangle.dart';
 import 'note_block.dart';
 import 'note_block_buttons.dart';
+import 'square_block_row.dart';
 
 /// Note input area with structured note-blocks and action buttons
 /// Light mode only
 class NoteInputArea extends StatefulWidget {
   final TextEditingController headerController;
-  final List<NoteBlockData> noteBlocks; // Changed to use NoteBlockData
+  final List<NoteBlockData> noteBlocks;
   final FocusNode? headerFocusNode;
   final List<TagData> appliedQuickTags;
   final List<TagData> appliedRegularTags;
@@ -26,9 +28,10 @@ class NoteInputArea extends StatefulWidget {
 
   // Note block management callbacks
   final VoidCallback? onAddNoteBlock;
-  final VoidCallback?
-      onAddIndentedNoteBlock; // New callback for indented blocks
+  final VoidCallback? onAddIndentedNoteBlock;
   final VoidCallback? onRemoveNoteBlock;
+  final Function(int)? onAddSquareBlock; // NEW: Add square block to specific note
+  final Function(int)? onRemoveSquareBlock; // NEW: Remove square block from specific note
 
   // Action callbacks
   final VoidCallback? onDelete;
@@ -51,6 +54,8 @@ class NoteInputArea extends StatefulWidget {
     this.onAddNoteBlock,
     this.onAddIndentedNoteBlock,
     this.onRemoveNoteBlock,
+    this.onAddSquareBlock, // NEW
+    this.onRemoveSquareBlock, // NEW
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -59,7 +64,7 @@ class NoteInputArea extends StatefulWidget {
     this.onLink,
   });
 
-  // Legacy constructor for backward compatibility - REMOVED const
+  // Legacy constructor for backward compatibility
   NoteInputArea.legacy({
     super.key,
     required TextEditingController controller,
@@ -71,6 +76,8 @@ class NoteInputArea extends StatefulWidget {
     this.onAddNoteBlock,
     this.onAddIndentedNoteBlock,
     this.onRemoveNoteBlock,
+    this.onAddSquareBlock,
+    this.onRemoveSquareBlock,
     this.onDelete,
     this.onUndo,
     this.onFormat,
@@ -96,7 +103,6 @@ class _NoteInputAreaState extends State<NoteInputArea> {
   @override
   void initState() {
     super.initState();
-    // Controllers are now passed in separately
   }
 
   /// Get responsive dimensions
@@ -114,27 +120,29 @@ class _NoteInputAreaState extends State<NoteInputArea> {
 
   /// Calculate the height for +/- buttons (capped at 50% of default note block height)
   double _calculateButtonHeight(bool isCompact) {
-    // Get the default/base dimensions for note blocks
     final dimensions = NoteBlockHeightUtils.getDimensions(context, isCompact: isCompact);
-    
-    // Return 50% of the base height as the maximum button height
     return dimensions.baseHeight * 0.5;
   }
 
   /// Calculate the indentation for +/- buttons to match the latest note block
   double _calculateButtonIndentation(bool isCompact) {
     if (widget.noteBlocks.isEmpty) {
-      return 0.0; // No indentation if no blocks
+      return 0.0;
     }
 
     final lastBlock = widget.noteBlocks.last;
+    
+    // If the last block has square blocks, no indentation for the button
+    if (lastBlock.hasSquareBlocks) {
+      return 0.0;
+    }
+    
     final dimensions = NoteBlockHeightUtils.getDimensions(
       context, 
       isCompact: isCompact, 
       indentLevel: lastBlock.indentLevel
     );
     
-    // Return the same indentation offset as the last note block
     return dimensions.indentOffset;
   }
 
@@ -213,48 +221,102 @@ class _NoteInputAreaState extends State<NoteInputArea> {
 
           // Multiple Note Blocks with Plus/Minus buttons positioned after the last block
           Expanded(
-            child: ListView.builder(
-              itemCount: widget.noteBlocks.length + 1, // +1 for the buttons
-              itemBuilder: (context, index) {
-                // Show note blocks first
-                if (index < widget.noteBlocks.length) {
-                  final noteBlock = widget.noteBlocks[index];
-                  return NoteBlock(
-                    controller: noteBlock.controller,
-                    focusNode: noteBlock.focusNode,
-                    indentLevel:
-                        noteBlock.indentLevel, // Pass indentation level
-                    isCompact: isCompact,
-                    hintText: index == 0
-                        ? 'Write your note here...'
-                        : noteBlock.isIndented
-                            ? 'Add sub-point...'
-                            : 'Continue your note...',
-                    onChanged: (text) {
-                      debugPrint(
-                          'Note block ${index + 1} changed: ${text.length} characters (indent: ${noteBlock.indentLevel})');
-                      // Note: Button indentation updates when blocks are added/removed, not on text change
-                    },
-                  );
-                } else {
-                  // Show Plus/Minus buttons after the last note block
-                  // Height is capped at 50% of the default note block size
-                  // Width adapts to match indentation of the latest note block
-                  final buttonHeight = _calculateButtonHeight(isCompact);
-                  final buttonIndentation = _calculateButtonIndentation(isCompact);
-                  
-                  return NoteBlockButtons(
-                    onAddBlock: widget.onAddNoteBlock,
-                    onAddIndentedBlock: widget.onAddIndentedNoteBlock,
-                    onRemoveBlock: widget.onRemoveNoteBlock,
-                    canRemoveBlock: widget.noteBlocks.length >
-                        1, // Can't remove if only one block
-                    canAddBlock: true, // ALWAYS ALLOW ADDING NOW - NO LIMIT!
-                    isCompact: isCompact,
-                    adaptiveHeight: buttonHeight, // Fixed height (50% of default note block)
-                    indentationOffset: buttonIndentation, // Match indentation of latest note block
-                  );
-                }
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return ListView.builder(
+                  itemCount: widget.noteBlocks.length + 1, // +1 for the buttons
+                  itemBuilder: (context, index) {
+                    // Show note blocks first
+                    if (index < widget.noteBlocks.length) {
+                      final noteBlock = widget.noteBlocks[index];
+                      
+                      // Check if this block has square blocks
+                      if (noteBlock.hasSquareBlocks) {
+                        return Column(
+                          children: [
+                            // The note block itself
+                            NoteBlock(
+                              controller: noteBlock.controller,
+                              focusNode: noteBlock.focusNode,
+                              indentLevel: noteBlock.indentLevel,
+                              isCompact: isCompact,
+                              hintText: noteBlock.isIndented
+                                  ? 'Add sub-point...'
+                                  : 'Continue your note...',
+                              onChanged: (text) {
+                                debugPrint(
+                                    'Note block ${index + 1} changed: ${text.length} characters (indent: ${noteBlock.indentLevel})');
+                              },
+                            ),
+                            // Square blocks row with inline buttons
+                            SquareBlockRow(
+                              noteBlockData: noteBlock,
+                              isCompact: isCompact,
+                              totalWidth: constraints.maxWidth - 24.0 - 20.0, // Account for margins and indentation
+                              onAddSquareBlock: () => widget.onAddSquareBlock?.call(index),
+                              onAddNoteBlock: widget.onAddIndentedNoteBlock, // Long press
+                              onAddIndentedNoteBlock: widget.onAddNoteBlock, // Double press
+                              onRemoveBlock: () => widget.onRemoveSquareBlock?.call(index),
+                            ),
+                          ],
+                        );
+                      } else {
+                        // Regular note block without square blocks
+                        return NoteBlock(
+                          controller: noteBlock.controller,
+                          focusNode: noteBlock.focusNode,
+                          indentLevel: noteBlock.indentLevel,
+                          isCompact: isCompact,
+                          hintText: index == 0
+                              ? 'Write your note here...'
+                              : noteBlock.isIndented
+                                  ? 'Add sub-point...'
+                                  : 'Continue your note...',
+                          onChanged: (text) {
+                            debugPrint(
+                                'Note block ${index + 1} changed: ${text.length} characters (indent: ${noteBlock.indentLevel})');
+                          },
+                        );
+                      }
+                    } else {
+                      // Show Plus/Minus buttons after the last note block
+                      // Only if the last block doesn't have square blocks
+                      final lastBlock = widget.noteBlocks.isNotEmpty 
+                          ? widget.noteBlocks.last 
+                          : null;
+                      
+                      if (lastBlock?.hasSquareBlocks ?? false) {
+                        // Check if square blocks are full (3)
+                        if (lastBlock!.squareBlocks.length >= 3) {
+                          // Square blocks row already includes the buttons below it
+                          return const SizedBox.shrink();
+                        }
+                        // If not full, buttons are inline with square blocks
+                        return const SizedBox.shrink();
+                      }
+                      
+                      final buttonHeight = _calculateButtonHeight(isCompact);
+                      final buttonIndentation = _calculateButtonIndentation(isCompact);
+                      
+                      return NoteBlockButtons(
+                        onAddBlock: widget.onAddNoteBlock,
+                        onAddIndentedBlock: widget.onAddIndentedNoteBlock,
+                        onRemoveBlock: widget.onRemoveNoteBlock,
+                        canRemoveBlock: widget.noteBlocks.length > 1,
+                        canAddBlock: true,
+                        isCompact: isCompact,
+                        adaptiveHeight: buttonHeight,
+                        indentationOffset: buttonIndentation,
+                        // NEW: Handle double press based on last block type
+                        onDoublePress: lastBlock?.isIndented ?? false 
+                            ? widget.onAddSquareBlock != null 
+                                ? () => widget.onAddSquareBlock!(widget.noteBlocks.length - 1)
+                                : null
+                            : null,
+                      );
+                    }
+                  },
+                );
               },
             ),
           ),

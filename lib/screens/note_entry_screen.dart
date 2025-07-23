@@ -15,19 +15,20 @@ import '../services/rectangle_service.dart';
 import '../models/note.dart';
 import '../models/tag.dart';
 import '../models/note_block_data.dart';
+import '../models/square_block_data.dart';
 
 /// Data structure to hold category-specific note state
 class CategoryNoteState {
   final TextEditingController headerController;
-  final List<NoteBlockData> noteBlocks; // Changed to use NoteBlockData
+  final List<NoteBlockData> noteBlocks;
   final List<TagData> appliedQuickTags;
   final List<TagData> appliedRegularTags;
-  final String category; // Add category parameter
+  final String category;
 
   CategoryNoteState({
     required this.headerController,
     required this.noteBlocks,
-    required this.category, // Make category required
+    required this.category,
     List<TagData>? appliedQuickTags,
     List<TagData>? appliedRegularTags,
   })  : appliedQuickTags = appliedQuickTags ?? [],
@@ -55,12 +56,12 @@ class CategoryNoteState {
   int get maxQuickTags {
     switch (category) {
       case 'Circle':
-        return 14; // Increased limit for Circle category
+        return 14;
       case 'Private':
-        return 1; // Limited to 1 quick-tag for Private category
+        return 1;
       case 'Public':
       default:
-        return 3; // Keep original limit for Public category
+        return 3;
     }
   }
 
@@ -109,12 +110,12 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
   int _getMaxQuickTags(String category) {
     switch (category) {
       case 'Circle':
-        return 14; // Increased limit for Circle category
+        return 14;
       case 'Private':
-        return 1; // Limited to 1 quick-tag for Private category
+        return 1;
       case 'Public':
       default:
-        return 3; // Keep original limit for Public category
+        return 3;
     }
   }
 
@@ -160,23 +161,17 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     _categoryNoteStates = {
       'Private': CategoryNoteState(
         headerController: TextEditingController(),
-        noteBlocks: [
-          NoteBlockData.normal()
-        ], // Start with one normal note block
+        noteBlocks: [NoteBlockData.normal()],
         category: 'Private',
       ),
       'Circle': CategoryNoteState(
         headerController: TextEditingController(),
-        noteBlocks: [
-          NoteBlockData.normal()
-        ], // Start with one normal note block
+        noteBlocks: [NoteBlockData.normal()],
         category: 'Circle',
       ),
       'Public': CategoryNoteState(
         headerController: TextEditingController(),
-        noteBlocks: [
-          NoteBlockData.normal()
-        ], // Start with one normal note block
+        noteBlocks: [NoteBlockData.normal()],
         category: 'Public',
       ),
     };
@@ -206,7 +201,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
 
     // Listen to tag category changes to update UI
     _tagService.categoryStream.listen((newActiveCategory) {
-      setState(() {}); // Trigger UI update
+      setState(() {});
     });
 
     // Listen to rectangle page changes
@@ -218,7 +213,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
 
     // Listen to rectangle category changes to update UI
     _rectangleService.categoryStream.listen((newActiveCategory) {
-      setState(() {}); // Trigger UI update
+      setState(() {});
     });
   }
 
@@ -242,7 +237,6 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     for (var category in _categoryNoteStates.keys) {
       final categoryState = _categoryNoteStates[category]!;
       if (categoryState.appliedRegularTags.isNotEmpty) {
-        // Get all tags for this specific category
         final allTagsForCategory = _tagService.getAllTagsForCategory(category);
 
         for (int i = 0; i < categoryState.appliedRegularTags.length; i++) {
@@ -261,7 +255,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     }
 
     if (hasChanges) {
-      setState(() {}); // Trigger UI update
+      setState(() {});
     }
   }
 
@@ -272,7 +266,6 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     for (var category in _categoryNoteStates.keys) {
       final categoryState = _categoryNoteStates[category]!;
       if (categoryState.appliedQuickTags.isNotEmpty) {
-        // Get all rectangles for this specific category
         final allRectanglesForCategory =
             _rectangleService.getAllRectanglesForCategory(category);
 
@@ -292,7 +285,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     }
 
     if (hasChanges) {
-      setState(() {}); // Trigger UI update
+      setState(() {});
     }
   }
 
@@ -351,6 +344,9 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
                               onAddIndentedNoteBlock:
                                   _handleAddIndentedNoteBlock,
                               onRemoveNoteBlock: _handleRemoveNoteBlock,
+                              onAddSquareBlock: _handleAddSquareBlock, // NEW
+                              onRemoveSquareBlock:
+                                  _handleRemoveSquareBlock, // NEW
                               onDelete: _handleDeleteNote,
                               onUndo: _handleUndoNote,
                               onFormat: _handleFormatNote,
@@ -409,7 +405,7 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
 
   // State management methods
   void _selectCategory(String category) {
-    if (category == _selectedCategory) return; // No change needed
+    if (category == _selectedCategory) return;
 
     debugPrint('Switching from $_selectedCategory to $category category');
 
@@ -456,10 +452,16 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
     setState(() {
       final currentState = _currentNoteState;
 
-      // Check if the latest block is indented
+      // Check if the latest block has square blocks
       if (currentState.noteBlocks.isNotEmpty &&
+          currentState.noteBlocks.last.hasSquareBlocks) {
+        // If latest block has square blocks, create a normal block below them
+        currentState.noteBlocks.add(NoteBlockData.normal());
+        debugPrint(
+            'Added normal note block after square blocks in $_selectedCategory category. Total blocks: ${_noteBlocks.length}');
+      } else if (currentState.noteBlocks.isNotEmpty &&
           currentState.noteBlocks.last.indentLevel > 0) {
-        // If latest is indented, create another indented block (flipped behavior)
+        // If latest is indented (without square blocks), create another indented block (flipped behavior)
         currentState.noteBlocks.add(NoteBlockData.withIndent(1));
         debugPrint(
             'Added indented note block (flipped) to $_selectedCategory category. Total blocks: ${_noteBlocks.length}');
@@ -508,6 +510,41 @@ class _NoteEntryScreenState extends State<NoteEntryScreen> {
 
     debugPrint(
         'Removed note block from $_selectedCategory category. Total blocks: ${_noteBlocks.length}');
+  }
+
+  // Handle adding a square block to a specific note block
+  void _handleAddSquareBlock(int noteBlockIndex) {
+    if (noteBlockIndex < 0 || noteBlockIndex >= _noteBlocks.length) return;
+
+    final noteBlock = _noteBlocks[noteBlockIndex];
+
+    // Only add if it's a medium block and not full
+    if (noteBlock.isIndented && !noteBlock.isSquareBlockRowFull) {
+      setState(() {
+        final newSquareBlock =
+            SquareBlockData.create(noteBlock.squareBlocks.length);
+        noteBlock.squareBlocks.add(newSquareBlock);
+      });
+
+      debugPrint(
+          'Added square block to note block $noteBlockIndex. Total square blocks: ${noteBlock.squareBlocks.length}');
+    }
+  }
+
+  // Handle removing square blocks from a specific note block
+  void _handleRemoveSquareBlock(int noteBlockIndex) {
+    if (noteBlockIndex < 0 || noteBlockIndex >= _noteBlocks.length) return;
+
+    final noteBlock = _noteBlocks[noteBlockIndex];
+
+    if (noteBlock.squareBlocks.isNotEmpty) {
+      setState(() {
+        noteBlock.squareBlocks.removeLast();
+      });
+
+      debugPrint(
+          'Removed square block from note block $noteBlockIndex. Remaining: ${noteBlock.squareBlocks.length}');
+    }
   }
 
   // Determine if a tag is a quick-tag (rectangle) based on ID
